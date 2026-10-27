@@ -1,0 +1,16 @@
+{
+  "name": "词伙 · 雅思词伙复习",
+  "short_name": "词伙",
+  "description": "离线雅思词伙学习工具",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f8f2",
+  "theme_color": "#315845",
+  "icons": [
+    {"src": "icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
