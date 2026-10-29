@@ -1,4 +1,4 @@
-const CACHE = 'collocate-mobile-v2';
+﻿const CACHE = 'collocate-mobile-v5';
 const APP_SHELL = ['./index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)));
@@ -26,3 +26,5 @@ self.addEventListener('fetch', event => {
     return response;
   })));
 });
+
+
