@@ -69,6 +69,16 @@ document.querySelectorAll(".sample-button").forEach((button) => {
   button.addEventListener("click", () => loadSample(button.dataset.report));
 });
 
+document.getElementById("quickUpload")?.addEventListener("click", () => fileInput?.click());
+document.getElementById("quickText")?.addEventListener("click", () => {
+  rawTextInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+  rawTextInput?.focus();
+});
+document.getElementById("quickCase")?.addEventListener("click", () => {
+  loadSample("R004");
+  rawTextInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
 document.getElementById("clearInput")?.addEventListener("click", () => {
   reportIdInput.value = "";
   rawTextInput.value = "";

@@ -4,48 +4,34 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
-    <link rel="stylesheet" href="static/app.css?v=20261116-ui-v6" />
+    <link rel="stylesheet" href="static/app.css?v=20261116-ui-v7" />
   </head>
   <body>
     <div class="app-frame">
-      <aside class="sidebar" aria-label="主导航">
-        <div class="sidebar-brand">
-          <div class="brand-mark">M</div>
-          <div>
-            <p class="brand-name">MedTrace</p>
-            <p class="brand-caption">医疗证据工作台</p>
-          </div>
-        </div>
-        <div class="sidebar-section-title">工作台</div>
-        <nav class="side-nav">
-          <a class="side-nav-item active" href="#workspace"><span class="nav-icon">⌂</span><span>报告解读</span></a>
-          <a class="side-nav-item" href="#warningsBlock"><span class="nav-icon">◇</span><span>风险核查</span></a>
-          <a class="side-nav-item" href="#openGraph"><span class="nav-icon">⌁</span><span>知识关联</span></a>
-        </nav>
-        <div class="sidebar-section-title">项目资料</div>
-        <nav class="side-nav">
-          <a class="side-nav-item" href="#retrievalSummary"><span class="nav-icon">▤</span><span>检索证据</span></a>
-          <a class="side-nav-item" href="#sources"><span class="nav-icon">◌</span><span>来源管理</span></a>
-        </nav>
-        <div class="sidebar-footer">
-          <div class="sidebar-status"><span class="online-dot"></span><span>演示环境已就绪</span></div>
-          <p>合成数据 · 仅用于工程联调</p>
-        </div>
-      </aside>
       <div class="main-shell">
-        <header class="topbar">
-          <div class="topbar-breadcrumb"><span class="mobile-brand-mark">M</span><span>工作台</span><b>/</b><strong>报告解读</strong></div>
-        </header>
     <main class="shell">
-      <header class="hero">
-        <div class="hero-copy">
-          <h1>检验报告解读工作台</h1>
-          <p class="subtitle">从原始报告到带来源的结构化解读</p>
-        </div>
+      <header class="site-header" aria-label="MedTrace 顶部导航">
+        <a class="site-brand" href="#workspace"><span class="site-mark">M</span><span><strong>MedTrace</strong><small>医疗证据工作台</small></span></a>
+        <span class="demo-pill"><span class="demo-dot"></span>演示环境 · 合成数据</span>
       </header>
+      <section class="consumer-hero glass" aria-label="MedTrace 健康助手">
+        <div class="consumer-hero-copy">
+          <p class="consumer-eyebrow"><span class="consumer-eyebrow-dot"></span>MedTrace 健康助手</p>
+          <h1>检验报告解读工作台</h1>
+          <p class="subtitle">把专业指标翻译成清晰、可核对的健康信息</p>
+          <div class="consumer-hero-actions"><a class="consumer-primary" href="#workspace">开始解读 <span>→</span></a><a class="consumer-secondary" href="#aboutPanel">了解功能</a></div>
+        </div>
+        <div class="consumer-hero-visual" aria-hidden="true"><div class="visual-orbit orbit-one"></div><div class="visual-orbit orbit-two"></div><div class="visual-heart"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 38S8 28 8 17a8 8 0 0 1 14-5l2 3 2-3a8 8 0 0 1 14 5c0 11-16 21-16 21Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M17 22h5l2-5 3 10 2-5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="visual-note note-one">报告已结构化</div><div class="visual-note note-two">来源可追溯</div></div>
+      </section>
 
-      <div class="notice">
-        <span class="notice-icon">i</span>
+      <section class="quick-actions" aria-label="快速入口">
+        <button type="button" class="quick-action quick-action-primary glass" id="quickUpload"><span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 15v4h14v-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><b>上传检验单</b><small>图片或 PDF</small></span><span class="quick-arrow">→</span></button>
+        <button type="button" class="quick-action glass" id="quickText"><span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 17-.7 3 3-.7L18.5 8.1a2.1 2.1 0 0 0-3-3L4.3 16.2ZM14 6.5l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><b>粘贴报告文本</b><small>直接输入内容</small></span><span class="quick-arrow">→</span></button>
+        <button type="button" class="quick-action glass" id="quickCase"><span class="quick-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 8h8M8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span><b>查看演示案例</b><small>快速了解流程</small></span><span class="quick-arrow">→</span></button>
+      </section>
+
+      <div class="notice glass">
+        <span class="notice-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 11v5M12 8h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
         <div><strong>使用提示</strong><span>结果用于报告理解与工程联调；不作诊断、不调整用药剂量，任何不确定信息都应由专业人员复核。</span></div>
       </div>
       <details class="about-panel" id="aboutPanel">
@@ -63,7 +49,7 @@
       </details>
 
       <section class="workspace" id="workspace" aria-label="检验报告解读工作区">
-        <form class="card input-card" id="analyzeForm">
+        <form class="card input-card glass" id="analyzeForm">
           <div class="card-heading">
             <div>
               <p class="card-kicker">报告输入</p>
@@ -95,7 +81,7 @@ AST 35 U/L（参考范围 0—40）
           <p class="helper">默认载入 R001 合成报告，点击按钮即可查看端到端展示。</p>
         </form>
 
-        <section class="card output-card" aria-live="polite">
+        <section class="card output-card glass" aria-live="polite">
           <div class="card-heading">
             <div>
               <p class="card-kicker">解读结果与证据</p>
@@ -104,7 +90,7 @@ AST 35 U/L（参考范围 0—40）
             <div class="output-meta"><span class="request-id" id="requestId">尚未生成</span><span class="model-meta hidden" id="modelMeta"></span></div>
           </div>
           <div id="loadingState" class="loading-state hidden"><span class="spinner"></span><div><strong>正在检索并整理</strong><span>Agent 正在读取报告、核对参考范围并准备来源引用…</span><div class="agent-timeline" id="agentTimeline"><span class="agent-step pending" data-agent-step="parse_report">抽取</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="query_reference">检索</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="check_interaction">核查</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="summarize">汇总</span></div></div></div>
-          <div id="emptyState" class="empty-state"><div class="empty-icon">↗</div><strong>等待一份检验报告</strong><span>提交左侧合成报告后，这里会显示解读摘要、指标状态和可点击来源。</span></div>
+          <div id="emptyState" class="empty-state"><div class="empty-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 23V9m0 0-5 5m5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 25h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><strong>等待一份检验报告</strong><span>提交左侧合成报告后，这里会显示解读摘要、指标状态和可点击来源。</span></div>
           <div id="errorBanner" class="error-banner hidden" role="alert"></div>
           <div id="resultPanel" class="hidden">
             <p class="answer" id="answer"></p>
@@ -137,7 +123,7 @@ AST 35 U/L（参考范围 0—40）
               <summary class="section-heading-row"><span class="section-label">知识库构建证据</span><span class="evidence-tag">创新性证据</span></summary>
               <div class="details-content"><div class="evidence-grid"><pre id="rawJsonEvidence"></pre><div><p class="evidence-note" id="evidenceNote"></p><ul id="checkedFields" class="checked-fields"></ul></div></div></div>
             </details>
-            <button type="button" class="graph-button" id="openGraph">🌐 探索 AI 知识关联网络（多跳推理图谱）<span>→</span></button>
+            <button type="button" class="graph-button" id="openGraph">探索 AI 知识关联网络（多跳推理图谱）<span>→</span></button>
             <details class="trace-block compact-details">
               <summary class="section-heading-row"><span class="section-label">调用链</span><span class="evidence-tag">Agent Trace</span></summary>
               <div class="details-content"><ol id="trace" class="trace-list"></ol></div>
@@ -152,21 +138,17 @@ AST 35 U/L（参考范围 0—40）
       </section>
     </main>
       </div>
-      <nav class="mobile-tabbar" aria-label="移动端导航">
-        <a class="mobile-tab active" href="#workspace"><span>⌂</span><small>解读</small></a>
-        <a class="mobile-tab" href="#warningsBlock"><span>◇</span><small>核查</small></a>
-        <a class="mobile-tab" href="#openGraph"><span>⌁</span><small>知识图谱</small></a>
-        <a class="mobile-tab" href="#sources"><span>◌</span><small>来源</small></a>
-      </nav>
     </div>
     <div class="graph-modal hidden" id="graphModal" role="dialog" aria-modal="true" aria-labelledby="graphTitle">
-      <div class="graph-dialog">
+      <div class="graph-dialog glass">
         <div class="graph-dialog-header"><div><p class="card-kicker">知识关联</p><h2 id="graphTitle">知识关联网络</h2></div><button type="button" class="modal-close" id="closeGraph">×</button></div>
         <p class="graph-help">示意展示当前指标、参考范围与用药核查之间的关系；真实节点和边由知识库 Schema 返回。</p>
         <svg class="graph-svg" id="graphSvg" viewBox="0 0 720 270" role="img" aria-label="知识关联网络示意图"></svg>
       </div>
     </div>
-    <script src="static/demo-results.js?v=20261116-ui-v6"></script>
-    <script src="static/app.js?v=20261116-ui-v6"></script>
+    <script src="static/demo-results.js?v=20261116-ui-v7"></script>
+    <script src="static/app.js?v=20261116-ui-v7"></script>
   </body>
 </html>
+
+
