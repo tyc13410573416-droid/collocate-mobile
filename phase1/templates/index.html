@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>检验报告解读演示</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v='20261116-gated-demo-v1') }}" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="brand-lockup">
+          <div class="brand-mark">M</div>
+          <div>
+            <p class="brand-name">MedTrace</p>
+            <p class="brand-caption">Nexent Agent Demo</p>
+          </div>
+        </div>
+        <div class="hero-copy">
+          <p class="eyebrow">华为 ICT 杯 · 赛题 3 · 阶段一</p>
+          <h1>检验报告解读工作台</h1>
+          <p class="subtitle">从原始报告到带来源的结构化解读</p>
+        </div>
+        <div class="hero-actions">
+          <span class="demo-badge">合成数据 Demo</span>
+          <span class="config-badge">GLM-4.7 · embedding-3 · RAG 34 条</span>
+          <div class="status-pill" id="transportStatus">等待请求</div>
+        </div>
+      </header>
+
+      <div class="notice">
+        <span class="notice-icon">i</span>
+        <div><strong>演示边界</strong><span>结果只用于工程联调；不作诊断、不调整用药剂量，任何不确定信息都应由专业人员复核。</span></div>
+      </div>
+      <div class="capability-strip" aria-label="评审证据维度">
+        <span><b>创新性</b> 多模态输入 · 双路召回</span>
+        <span><b>应用价值</b> 检验解读 · 用药核查</span>
+        <span><b>完整性</b> 引用 · 推理链 · 可复现 Demo</span>
+      </div>
+
+      <section class="workspace" aria-label="检验报告解读工作区">
+        <form class="card input-card" id="analyzeForm">
+          <div class="card-heading">
+            <div>
+              <p class="card-kicker">STEP 01 · INPUT</p>
+              <h2>输入检验单</h2>
+            </div>
+            <span class="synthetic-tag">合成样本</span>
+          </div>
+          <label for="reportId">样本编号</label>
+          <input id="reportId" name="report_id" value="R001" autocomplete="off" />
+          <label>输入方式</label>
+          <label class="upload-dropzone" for="reportFile" id="dropZone">
+            <input id="reportFile" type="file" accept=".png,.jpg,.jpeg,.pdf" />
+            <span class="upload-icon">＋</span>
+            <span class="upload-title">上传检验单图片或 PDF</span>
+            <span class="upload-help">当前为前端占位，上传后载入对应合成样例</span>
+            <span class="file-name" id="fileName">也可以直接粘贴下方报告文本</span>
+          </label>
+          <label for="rawText">报告文本</label>
+          <textarea id="rawText" name="raw_text" rows="13">合成检验单 R001
+ALT 68 IU/L（参考范围 0—40）
+AST 35 U/L（参考范围 0—40）
+血红蛋白 11.8 g/dL（参考范围 120—160 g/L）
+白细胞 6.2 ×10^9/L（参考范围 4—10）
+空腹血糖 5.4 mmol/L（参考范围 3.9—6.1）</textarea>
+          <label for="currentMedications">当前用药 <span class="optional-label">可选</span></label>
+          <textarea id="currentMedications" name="current_medications" rows="2" placeholder="例如：阿托伐他汀 10 mg，每晚一次（仅作演示输入）"></textarea>
+          <div class="sample-row"><span>快速开始</span><div class="sample-buttons"><button type="button" class="sample-button active" data-report="R001">R001</button><button type="button" class="sample-button" data-report="R002">R002</button><button type="button" class="sample-button" data-report="R003">R003</button><button type="button" class="sample-button" data-report="R004">字段规范</button><button type="button" class="sample-button" data-report="R005">冲突复核</button><button type="button" class="text-button" id="clearInput">清空</button></div></div>
+          <button type="submit" class="primary-button" id="submitButton"><span class="button-label">生成带来源解读</span></button>
+          <p class="helper">默认载入 R001 合成报告，点击按钮即可查看端到端展示。</p>
+        </form>
+
+        <section class="card output-card" aria-live="polite">
+          <div class="card-heading">
+            <div>
+              <p class="card-kicker">STEP 02 · TRACEABLE OUTPUT</p>
+              <h2>带来源解读</h2>
+            </div>
+            <div class="output-meta"><span class="request-id" id="requestId">尚未生成</span><span class="model-meta hidden" id="modelMeta"></span></div>
+          </div>
+          <div id="loadingState" class="loading-state hidden"><span class="spinner"></span><div><strong>正在检索并整理</strong><span>Agent 正在读取报告、核对参考范围并准备来源引用…</span><div class="agent-timeline" id="agentTimeline"><span class="agent-step pending" data-agent-step="parse_report">抽取</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="query_reference">检索</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="check_interaction">核查</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="summarize">汇总</span></div></div></div>
+          <div id="emptyState" class="empty-state"><div class="empty-icon">↗</div><strong>等待一份检验报告</strong><span>提交左侧合成报告后，这里会显示解读摘要、指标状态和可点击来源。</span></div>
+          <div id="errorBanner" class="error-banner hidden" role="alert"></div>
+          <div id="resultPanel" class="hidden">
+            <p class="answer" id="answer"></p>
+            <div class="answer-citations" id="answerCitations"></div>
+            <div class="schema-summary hidden" id="schemaSummary">
+              <div class="section-heading-row"><p class="section-label">解析字段</p><span class="confidence-badge hidden" id="confidenceBadge"></span></div>
+              <div class="patient-fields" id="patientFields"></div>
+              <div class="medications-summary"><span class="summary-caption">当前用药</span><div class="medication-tags" id="medicationsSummary"></div></div>
+              <div class="confidence-alert hidden" id="confidenceAlert" role="alert"></div>
+            </div>
+            <div class="decision-gate hidden" id="decisionGate">
+              <div class="decision-gate-heading"><span class="section-label">证据决策门控</span><span class="gate-badge" id="gateBadge"></span></div>
+              <p class="gate-action" id="gateAction"></p>
+              <div class="gate-conflicts" id="gateConflicts"></div>
+            </div>
+            <div class="metric-grid" id="metrics"></div>
+            <div class="reasoning-block">
+              <p class="section-label">可溯源推理链</p>
+              <div class="reasoning-chain" id="reasoning"></div>
+            </div>
+            <div class="warnings-block hidden" id="warningsBlock">
+              <div class="warning-heading"><p class="section-label">用药核查</p><span>需人工复核</span></div>
+              <div id="warnings"></div>
+            </div>
+            <details class="retrieval-block compact-details">
+              <summary class="section-heading-row"><span class="section-label">RAG 检索详情</span><span class="evidence-tag">技术证据</span></summary>
+              <div class="details-content"><div class="retrieval-summary" id="retrievalSummary"></div><div class="retrieval-sources" id="retrievalSources"></div></div>
+            </details>
+            <details class="evidence-block compact-details">
+              <summary class="section-heading-row"><span class="section-label">知识库构建证据</span><span class="evidence-tag">创新性证据</span></summary>
+              <div class="details-content"><div class="evidence-grid"><pre id="rawJsonEvidence"></pre><div><p class="evidence-note" id="evidenceNote"></p><ul id="checkedFields" class="checked-fields"></ul></div></div></div>
+            </details>
+            <button type="button" class="graph-button" id="openGraph">🌐 探索 AI 知识关联网络（多跳推理图谱）<span>→</span></button>
+            <details class="trace-block compact-details">
+              <summary class="section-heading-row"><span class="section-label">调用链</span><span class="evidence-tag">Agent Trace</span></summary>
+              <div class="details-content"><ol id="trace" class="trace-list"></ol></div>
+            </details>
+            <details class="sources-block compact-details">
+              <summary class="section-heading-row"><span class="section-label">引用来源</span><span class="evidence-tag">可点击溯源</span></summary>
+              <div class="details-content"><div id="sources"></div></div>
+            </details>
+            <p class="disclaimer" id="disclaimer"></p>
+          </div>
+        </section>
+      </section>
+    </main>
+    <div class="graph-modal hidden" id="graphModal" role="dialog" aria-modal="true" aria-labelledby="graphTitle">
+      <div class="graph-dialog">
+        <div class="graph-dialog-header"><div><p class="card-kicker">DEFENSE EVIDENCE</p><h2 id="graphTitle">知识关联网络</h2></div><button type="button" class="modal-close" id="closeGraph">×</button></div>
+        <p class="graph-help">示意展示当前指标、参考范围与用药核查之间的关系；真实节点和边由知识库 Schema 返回。</p>
+        <svg class="graph-svg" id="graphSvg" viewBox="0 0 720 270" role="img" aria-label="知识关联网络示意图"></svg>
+      </div>
+    </div>
+    <script src="{{ url_for('static', filename='app.js', v='20261116-gated-demo-v1') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: medtrace-nexent-demo
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_MODE
+        value: demo
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000

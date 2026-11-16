@@ -1,0 +1,25 @@
+# Local/runtime files
+.npm-cache/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.log
+
+# Local access history and backups
+phase1/logs/
+phase1/backups/
+
+# Temporary screenshots and extraction helpers
+crop*.png
+extract_doc.py
+进度表_utf8.txt
+
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+
+# Editor/system files
+.vscode/
+.idea/
+Thumbs.db

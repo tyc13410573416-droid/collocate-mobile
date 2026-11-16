@@ -1,0 +1,653 @@
+[
+  {
+    "report_id": "R001",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 68,
+        "unit": "IU/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R001-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 35,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R001-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 11.8,
+        "unit": "g/dL",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R001-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 6.2,
+        "unit": "×10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R001-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 5.4,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R001-GLU"
+      },
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 68,
+        "unit": "IU/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R001-ALT"
+      }
+    ]
+  },
+  {
+    "report_id": "R002",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 32,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R002-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 45,
+        "unit": "IU/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R002-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 132,
+        "unit": "g/L",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R002-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 3.7,
+        "unit": "10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R002-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 6.4,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R002-GLU"
+      }
+    ]
+  },
+  {
+    "report_id": "R003",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 40,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R003-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 38,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R003-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 145,
+        "unit": "g/L",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R003-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 7.1,
+        "unit": "10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R003-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 4.8,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R003-GLU"
+      }
+    ]
+  },
+  {
+    "report_id": "R004",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 52,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R004-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 61,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R004-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 110,
+        "unit": "g/L",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R004-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 5.5,
+        "unit": "10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R004-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 7.2,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R004-GLU"
+      }
+    ]
+  },
+  {
+    "report_id": "R005",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 24,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R005-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 29,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R005-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 155,
+        "unit": "g/L",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R005-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 8.4,
+        "unit": "10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R005-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 5.9,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R005-GLU"
+      }
+    ]
+  },
+  {
+    "report_id": "R006",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 46,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R006-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 42,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R006-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 126,
+        "unit": "g/L",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R006-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 4.1,
+        "unit": "10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R006-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 4.2,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R006-GLU"
+      }
+    ]
+  },
+  {
+    "report_id": "R007",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 18,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R007-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 21,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R007-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 116,
+        "unit": "g/L",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R007-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 9.6,
+        "unit": "10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R007-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 5.1,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R007-GLU"
+      }
+    ]
+  },
+  {
+    "report_id": "R008",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 75,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R008-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 34,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R008-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 142,
+        "unit": "g/L",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R008-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 6.8,
+        "unit": "10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R008-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 5.6,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R008-GLU"
+      }
+    ]
+  },
+  {
+    "report_id": "R009",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 39,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R009-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 39,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R009-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 161,
+        "unit": "g/L",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R009-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 4.9,
+        "unit": "10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R009-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 6.0,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R009-GLU"
+      }
+    ]
+  },
+  {
+    "report_id": "R010",
+    "synthetic": true,
+    "source": "synthetic_demo_batch_v1",
+    "version_year": 2026,
+    "modality": "text_table",
+    "indicators": [
+      {
+        "code": "ALT",
+        "name": "丙氨酸氨基转移酶",
+        "value": 27,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R010-ALT"
+      },
+      {
+        "code": "AST",
+        "name": "天门冬氨酸氨基转移酶",
+        "value": 47,
+        "unit": "U/L",
+        "reference": {
+          "low": 0,
+          "high": 40
+        },
+        "source_id": "SRC-R010-AST"
+      },
+      {
+        "code": "HGB",
+        "name": "血红蛋白",
+        "value": 135,
+        "unit": "g/L",
+        "reference": {
+          "low": 120,
+          "high": 160
+        },
+        "source_id": "SRC-R010-HGB"
+      },
+      {
+        "code": "WBC",
+        "name": "白细胞",
+        "value": 3.5,
+        "unit": "10^9/L",
+        "reference": {
+          "low": 4,
+          "high": 10
+        },
+        "source_id": "SRC-R010-WBC"
+      },
+      {
+        "code": "GLU",
+        "name": "空腹血糖",
+        "value": 5.0,
+        "unit": "mmol/L",
+        "reference": {
+          "low": 3.9,
+          "high": 6.1
+        },
+        "source_id": "SRC-R010-GLU"
+      }
+    ]
+  }
+]
