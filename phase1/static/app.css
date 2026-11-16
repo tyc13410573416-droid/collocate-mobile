@@ -777,7 +777,7 @@ input:focus, textarea:focus { border-color: rgba(0,103,217,.42); outline: 3px so
   .site-header, .consumer-hero, .quick-actions, .notice, .about-panel, .workspace { width: 100%; max-width: 100%; min-width: 0; }
   .site-header { min-height: 72px; padding: 16px 0; gap: 12px; }
   .site-brand { min-width: 0; }
-  .demo-pill { max-width: 152px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .demo-pill { display: none; }
   .consumer-hero { grid-template-columns: 1fr; min-height: 0; margin-top: 24px; padding: 32px 24px; text-align: center; }
   .consumer-hero-copy { min-width: 0; }
   .consumer-eyebrow, .consumer-hero-actions { justify-content: center; }
