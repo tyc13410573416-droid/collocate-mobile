@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
-    <link rel="stylesheet" href="static/app.css?v=20261116-ui-v3" />
+    <link rel="stylesheet" href="static/app.css?v=20261116-ui-v6" />
   </head>
   <body>
     <div class="app-frame">
@@ -35,44 +35,38 @@
       <div class="main-shell">
         <header class="topbar">
           <div class="topbar-breadcrumb"><span class="mobile-brand-mark">M</span><span>工作台</span><b>/</b><strong>报告解读</strong></div>
-          <div class="topbar-actions"><span class="topbar-chip">GLM-4.7 · RAG 34 条</span><span class="topbar-avatar">汤</span></div>
         </header>
     <main class="shell">
       <header class="hero">
-        <div class="brand-lockup">
-          <div class="brand-mark">M</div>
-          <div>
-            <p class="brand-name">MedTrace</p>
-            <p class="brand-caption">Nexent Agent Demo</p>
-          </div>
-        </div>
         <div class="hero-copy">
-          <p class="eyebrow">华为 ICT 杯 · 赛题 3 · 阶段一</p>
           <h1>检验报告解读工作台</h1>
           <p class="subtitle">从原始报告到带来源的结构化解读</p>
-        </div>
-        <div class="hero-actions">
-          <span class="demo-badge">合成数据 Demo</span>
-          <span class="config-badge">GLM-4.7 · embedding-3 · RAG 34 条</span>
-          <div class="status-pill" id="transportStatus">等待请求</div>
         </div>
       </header>
 
       <div class="notice">
         <span class="notice-icon">i</span>
-        <div><strong>演示边界</strong><span>结果只用于工程联调；不作诊断、不调整用药剂量，任何不确定信息都应由专业人员复核。</span></div>
+        <div><strong>使用提示</strong><span>结果用于报告理解与工程联调；不作诊断、不调整用药剂量，任何不确定信息都应由专业人员复核。</span></div>
       </div>
-      <div class="capability-strip" aria-label="评审证据维度">
-        <span><b>创新性</b> 多模态输入 · 双路召回</span>
-        <span><b>应用价值</b> 检验解读 · 用药核查</span>
-        <span><b>完整性</b> 引用 · 推理链 · 可复现 Demo</span>
-      </div>
+      <details class="about-panel" id="aboutPanel">
+        <summary><span>关于本演示</span><span class="about-summary-hint">竞赛信息 · 技术配置 · 证据能力</span></summary>
+        <div class="about-content">
+          <div class="about-row"><span class="about-label">项目定位</span><span>华为 ICT 杯 · 赛题 3 · 阶段一演示</span><span class="status-pill" id="transportStatus">等待请求</span></div>
+          <div class="about-row"><span class="about-label">技术配置</span><span>GLM-4.7 · embedding-3 · RAG 34 条 · Nexent Agent</span></div>
+          <div class="about-row"><span class="about-label">证据能力</span><span>多模态输入 · 双路召回 · 引用溯源 · 决策门控 · 知识关联图谱</span></div>
+          <div class="capability-strip" aria-label="评审证据维度">
+            <span><b>创新性</b> 多模态输入 · 双路召回</span>
+            <span><b>应用价值</b> 检验解读 · 用药核查</span>
+            <span><b>完整性</b> 引用 · 推理链 · 可复现 Demo</span>
+          </div>
+        </div>
+      </details>
 
       <section class="workspace" id="workspace" aria-label="检验报告解读工作区">
         <form class="card input-card" id="analyzeForm">
           <div class="card-heading">
             <div>
-              <p class="card-kicker">STEP 01 · INPUT</p>
+              <p class="card-kicker">报告输入</p>
               <h2>输入检验单</h2>
             </div>
             <span class="synthetic-tag">合成样本</span>
@@ -104,7 +98,7 @@ AST 35 U/L（参考范围 0—40）
         <section class="card output-card" aria-live="polite">
           <div class="card-heading">
             <div>
-              <p class="card-kicker">STEP 02 · TRACEABLE OUTPUT</p>
+              <p class="card-kicker">解读结果与证据</p>
               <h2>带来源解读</h2>
             </div>
             <div class="output-meta"><span class="request-id" id="requestId">尚未生成</span><span class="model-meta hidden" id="modelMeta"></span></div>
@@ -167,12 +161,12 @@ AST 35 U/L（参考范围 0—40）
     </div>
     <div class="graph-modal hidden" id="graphModal" role="dialog" aria-modal="true" aria-labelledby="graphTitle">
       <div class="graph-dialog">
-        <div class="graph-dialog-header"><div><p class="card-kicker">DEFENSE EVIDENCE</p><h2 id="graphTitle">知识关联网络</h2></div><button type="button" class="modal-close" id="closeGraph">×</button></div>
+        <div class="graph-dialog-header"><div><p class="card-kicker">知识关联</p><h2 id="graphTitle">知识关联网络</h2></div><button type="button" class="modal-close" id="closeGraph">×</button></div>
         <p class="graph-help">示意展示当前指标、参考范围与用药核查之间的关系；真实节点和边由知识库 Schema 返回。</p>
         <svg class="graph-svg" id="graphSvg" viewBox="0 0 720 270" role="img" aria-label="知识关联网络示意图"></svg>
       </div>
     </div>
-    <script src="static/demo-results.js?v=20261116-ui-v3"></script>
-    <script src="static/app.js?v=20261116-ui-v3"></script>
+    <script src="static/demo-results.js?v=20261116-ui-v6"></script>
+    <script src="static/app.js?v=20261116-ui-v6"></script>
   </body>
 </html>
