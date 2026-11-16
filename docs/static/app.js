@@ -419,6 +419,9 @@ function renderGraph(graph) {
 document.getElementById("openGraph")?.addEventListener("click", () => graphModal?.classList.remove("hidden"));
 document.getElementById("closeGraph")?.addEventListener("click", () => graphModal?.classList.add("hidden"));
 graphModal?.addEventListener("click", (event) => { if (event.target === graphModal) graphModal.classList.add("hidden"); });
+document.querySelectorAll('a[href="#openGraph"]').forEach((link) => {
+  link.addEventListener("click", () => setTimeout(() => document.getElementById("openGraph")?.click(), 0));
+});
 
 async function requestAnalysis(payload) {
   try {

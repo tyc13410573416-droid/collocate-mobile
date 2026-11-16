@@ -4,9 +4,39 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v='20261116-gated-demo-v1') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v='20261116-ui-v3') }}" />
   </head>
   <body>
+    <div class="app-frame">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="sidebar-brand">
+          <div class="brand-mark">M</div>
+          <div>
+            <p class="brand-name">MedTrace</p>
+            <p class="brand-caption">医疗证据工作台</p>
+          </div>
+        </div>
+        <div class="sidebar-section-title">工作台</div>
+        <nav class="side-nav">
+          <a class="side-nav-item active" href="#workspace"><span class="nav-icon">⌂</span><span>报告解读</span></a>
+          <a class="side-nav-item" href="#warningsBlock"><span class="nav-icon">◇</span><span>风险核查</span></a>
+          <a class="side-nav-item" href="#openGraph"><span class="nav-icon">⌁</span><span>知识关联</span></a>
+        </nav>
+        <div class="sidebar-section-title">项目资料</div>
+        <nav class="side-nav">
+          <a class="side-nav-item" href="#retrievalSummary"><span class="nav-icon">▤</span><span>检索证据</span></a>
+          <a class="side-nav-item" href="#sources"><span class="nav-icon">◌</span><span>来源管理</span></a>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-status"><span class="online-dot"></span><span>演示环境已就绪</span></div>
+          <p>合成数据 · 仅用于工程联调</p>
+        </div>
+      </aside>
+      <div class="main-shell">
+        <header class="topbar">
+          <div class="topbar-breadcrumb"><span class="mobile-brand-mark">M</span><span>工作台</span><b>/</b><strong>报告解读</strong></div>
+          <div class="topbar-actions"><span class="topbar-chip">GLM-4.7 · RAG 34 条</span><span class="topbar-avatar">汤</span></div>
+        </header>
     <main class="shell">
       <header class="hero">
         <div class="brand-lockup">
@@ -38,7 +68,7 @@
         <span><b>完整性</b> 引用 · 推理链 · 可复现 Demo</span>
       </div>
 
-      <section class="workspace" aria-label="检验报告解读工作区">
+      <section class="workspace" id="workspace" aria-label="检验报告解读工作区">
         <form class="card input-card" id="analyzeForm">
           <div class="card-heading">
             <div>
@@ -127,6 +157,14 @@ AST 35 U/L（参考范围 0—40）
         </section>
       </section>
     </main>
+      </div>
+      <nav class="mobile-tabbar" aria-label="移动端导航">
+        <a class="mobile-tab active" href="#workspace"><span>⌂</span><small>解读</small></a>
+        <a class="mobile-tab" href="#warningsBlock"><span>◇</span><small>核查</small></a>
+        <a class="mobile-tab" href="#openGraph"><span>⌁</span><small>知识图谱</small></a>
+        <a class="mobile-tab" href="#sources"><span>◌</span><small>来源</small></a>
+      </nav>
+    </div>
     <div class="graph-modal hidden" id="graphModal" role="dialog" aria-modal="true" aria-labelledby="graphTitle">
       <div class="graph-dialog">
         <div class="graph-dialog-header"><div><p class="card-kicker">DEFENSE EVIDENCE</p><h2 id="graphTitle">知识关联网络</h2></div><button type="button" class="modal-close" id="closeGraph">×</button></div>
@@ -134,6 +172,6 @@ AST 35 U/L（参考范围 0—40）
         <svg class="graph-svg" id="graphSvg" viewBox="0 0 720 270" role="img" aria-label="知识关联网络示意图"></svg>
       </div>
     </div>
-    <script src="{{ url_for('static', filename='app.js', v='20261116-gated-demo-v1') }}"></script>
+    <script src="{{ url_for('static', filename='app.js', v='20261116-ui-v3') }}"></script>
   </body>
 </html>
