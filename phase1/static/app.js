@@ -420,6 +420,28 @@ document.getElementById("openGraph")?.addEventListener("click", () => graphModal
 document.getElementById("closeGraph")?.addEventListener("click", () => graphModal?.classList.add("hidden"));
 graphModal?.addEventListener("click", (event) => { if (event.target === graphModal) graphModal.classList.add("hidden"); });
 
+async function requestAnalysis(payload) {
+  try {
+    const response = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(errorBody.error || `HTTP ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    const staticResults = window.MEDTRACE_STATIC_RESULTS || {};
+    const staticResult = staticResults[payload.report_id];
+    if (staticResult) {
+      return { ...staticResult, transport: "github-pages-demo" };
+    }
+    throw error;
+  }
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   submitButton.disabled = true;
@@ -432,23 +454,14 @@ form.addEventListener("submit", async (event) => {
   loadingState.classList.remove("hidden");
   animateAgentTimeline();
   try {
-    const response = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        report_id: reportIdInput.value.trim(),
-        raw_text: rawTextInput.value,
-        medications: medicationsInput.value,
-        options: { include_trace: true, include_retrieval: true, include_graph: true },
-      }),
+    const result = await requestAnalysis({
+      report_id: reportIdInput.value.trim(),
+      raw_text: rawTextInput.value,
+      medications: medicationsInput.value,
+      options: { include_trace: true, include_retrieval: true, include_graph: true },
     });
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}));
-      throw new Error(errorBody.error || `HTTP ${response.status}`);
-    }
-    const result = await response.json();
     renderResult(result);
-    transportStatus.textContent = result.transport === "nexent-http" ? "Nexent API 已联通" : (result.transport === "mock-nexent-http" ? "Mock API 已联通" : "本地演示模式");
+    transportStatus.textContent = result.transport === "nexent-http" ? "Nexent API 已联通" : (result.transport === "mock-nexent-http" ? "Mock API 已联通" : (result.transport === "github-pages-demo" ? "GitHub Pages 演示模式" : "本地演示模式"));
     transportStatus.className = "status-pill ready";
   } catch (error) {
     loadingState.classList.add("hidden");

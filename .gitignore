@@ -1,5 +1,6 @@
 # Local/runtime files
 .npm-cache/
+cloudflared.exe
 __pycache__/
 **/__pycache__/
 *.pyc
