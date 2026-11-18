@@ -51,9 +51,9 @@ C:/Python314/python.exe D:/ict1.0/nexent-mcp/server.py --http
 |---|---|---|---|
 | `pass` | 证据一致、置信足够，直接给结论 | **绿** | 置信度 ≥ 0.8 且无冲突 |
 | `review` | 来源参考区间冲突，只给说明不给结论 | **橙** | 多来源区间不一致 |
-| `abstain` | 证据缺失或置信不足，拒答/追问 | **灰** | 缺数值 / 缺性别 / 置信 < 0.8 |
+| `abstain` | 没有指标或没有可用参考依据，停止输出 | **灰** | 缺数值 / 未收录指标 |
 
-**置信度阈值：0.8**。低于 0.8 一律 `abstain`（规则由后端判定，前端只负责展示，不参与判断）。
+**置信度阈值：0.8**。低于 0.8 或缺少可澄清的关键字段进入 `review`；完全没有指标或参考依据才 `abstain`（规则由后端判定，前端只负责展示，不参与判断）。
 
 ---
 
@@ -189,15 +189,15 @@ C:/Python314/python.exe D:/ict1.0/nexent-mcp/server.py --http
 }
 ```
 
-### 6.2 三态示例二：abstain（拒答/追问）
+### 6.2 三态示例二：review（缺性别追问）
 
 输入 `evidence_gate("ALT", 30)`（未传性别）：
 
 ```json
 {
-  "decision_gate": "abstain",
+  "decision_gate": "review",
   "confidence": 0.7,
-  "evidence_status": "low_confidence",
+  "evidence_status": "missing",
   "conflicts": [],
   "next_action": "该指标参考区间区分男女，请补充性别后重新解读",
   "source_versions": [
@@ -206,7 +206,7 @@ C:/Python314/python.exe D:/ict1.0/nexent-mcp/server.py --http
 }
 ```
 
-> 说明：ALT 分男女区间，缺性别时置信度从 0.95 降到 0.70，低于阈值 0.8，触发 abstain。前端此时应弹「单字段追问输入框」（对应澄清分支）。
+> 说明：ALT 分男女区间，缺性别时置信度从 0.95 降到 0.70，进入 review。前端此时应弹「单字段追问输入框」（对应澄清分支）。
 
 ### 6.3 三态示例三：review（复核）—— 合成数据（演示用）
 
@@ -244,7 +244,7 @@ C:/Python314/python.exe D:/ict1.0/nexent-mcp/server.py --http
 2. **三态配色**：pass 绿 / review 橙 / abstain 灰（见第 3 节）。
 3. **conflicts 面板**：`review` 时渲染 `conflicts` 数组，展示「来源编号 + 冲突字段 + 差异详情」，并带「合成数据」横幅（合规要求）。
 4. **可点击来源**：`source_versions[].source_id` 用于前端"可点击引用"。
-5. **澄清追问**：`abstain` 且 `next_action` 含「补充性别」时，前端弹单字段输入框，用户补齐后重新调 `evidence_gate`。
+5. **澄清追问**：`review` 且 `next_action` 含「补充性别」时，前端弹单字段输入框，用户补齐后重新调 `evidence_gate`。
 6. **占位字段声明**：`source_version`（现为 `v1`）和 `effective_date`（现为年份）是占位值，等知识库 v2 到位后替换，**字段结构不变**，前端无需改。
 
 ---
