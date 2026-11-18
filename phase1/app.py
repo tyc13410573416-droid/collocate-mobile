@@ -11,11 +11,15 @@ from datetime import datetime, timezone
 import requests
 from flask import Flask, jsonify, render_template, request
 
-from analysis_engine import analyze_payload, _get_mcp_server
-
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PHASE1_DIR = os.path.dirname(os.path.abspath(__file__))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
+if PHASE1_DIR not in sys.path:
+    sys.path.insert(0, PHASE1_DIR)
+
+from analysis_engine import analyze_payload, _get_mcp_server
+
 from phase2.nexent_client import NexentClient, NexentClientError
 
 
