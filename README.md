@@ -17,7 +17,11 @@ python app.py
 
 - `R001/R002/R003`：基础合成检验单；
 - `R004`：`parse_report` 字段规范测试；
-- `R005`：来源冲突与证据决策门控测试。
+- `R005`：来源冲突与证据决策门控测试；
+- `R006`：无指标证据不足（`abstain`）测试；
+- `R007`：脱敏图 1 凝血四项，8 个 ↑↓ 异常指标卡；
+- `R008`：脱敏图 2 葡萄糖 16.1 + C 反应蛋白 16.0 解析测试；
+- `R009`：脱敏图 3 手机长图兼容性预览，`R010/R011` 为图 4/5 结构化预览。
 
 ## 部署
 
@@ -28,4 +32,16 @@ python app.py
 - `phase1/`：Flask 前端、Mock API、合成数据、图表和接口文档；
 - `phase2/`：Nexent HTTP 客户端；
 - `phase1/docs/api_contract.md`：字段协议和证据门控协议；
-- `phase1/docs/real_data_plan.md`：公开脱敏数据使用边界。
+- `phase1/docs/real_data_plan.md`：公开脱敏数据使用边界；
+- `phase1/mcp_server/`：`query_reference`、`parse_report`、`evidence_gate`、区间解析、34 条参考区间和验证脚本；
+- `docs/static/assets/medical-demo/`：明确标注的脱敏图片演示资产。
+
+
+## MCP 工具验证
+
+```powershell
+python phase1/mcp_server/test_gate.py
+python phase1/mcp_server/e2e_test.py
+```
+
+在没有 `fastmcp` 的 Python 环境中，端到端脚本会自动执行同一工具链的离线校验；安装 `phase1/mcp_server/requirements.txt` 后可切换到真实 MCP stdio/HTTP 传输。

@@ -46,7 +46,7 @@
 }
 ```
 
-`decision_gate` 只能是 `pass`、`review` 或 `abstain`。当来源版本冲突、患者关键信息缺失或抽取置信度低于 0.8 时，返回 `review`；没有足够指标和参考范围时返回 `abstain`。前端会显示门控状态、冲突字段和下一步动作，不把复核状态包装成诊断结论。
+`decision_gate` 只能是 `pass`、`review` 或 `abstain`。来源版本冲突返回 `review`（只展示冲突，不给确定结论）；患者关键信息缺失、抽取置信度低于 0.8 或没有足够指标和参考范围时返回 `abstain`（拒答或追问）。前端会显示门控状态、冲突字段和下一步动作，不把门控结果包装成诊断结论。
 
 ## `POST /v1/analyze`
 
@@ -143,3 +143,33 @@
 ```
 
 `status` 只表达相对于给定参考范围的 `high`、`low`、`normal` 或 `unknown`，不生成诊断结论，也不提供剂量调整建议。后端可以保留旧的 `trace` 字符串数组，但正式接口建议使用带 `status` 和耗时的 `trace_log` 对象数组。
+
+## MCP 工具联调
+
+项目内置 `phase1/mcp_server/`，包含 `query_reference`、`parse_report`、`evidence_gate`、区间解析器和 34 条参考区间数据。Mock API 会在本地调用同一组工具并把结果放入响应的 `mcp_tools` 字段，保证前端演示链路与 Nexent MCP 链路使用同一套规则。
+
+- 纯规则校验：`python phase1/mcp_server/test_gate.py`
+- 端到端校验：`python phase1/mcp_server/e2e_test.py`
+- 真实 MCP stdio/HTTP：先用 Python 3.10+ 安装 `phase1/mcp_server/requirements.txt`，再运行 `phase1/mcp_server/run_server.ps1`。
+
+
+## 脱敏图片演示资产
+
+网页上传区内置 5 个明确标注的脱敏样本，使用 `asset_id` 选择，不把图片内容写入日志：
+
+- `coagulation` / `R007`：图 1 凝血四项，8 个带 ↑↓ 标记的异常指标卡；
+- `glucose-crp` / `R008`：图 2 葡萄糖 16.1 mmol/L、C 反应蛋白 16.0 mg/L；
+- `mobile` / `R009`：图 3 手机长图，仅验证窄屏图片预览和多模态入口；
+- `urine` / `R010`、`liver` / `R011`：图 4、图 5 的结构化演示占位。
+
+图 2 的 `parse_report` 测试文本为：`葡萄糖 16.1 mmol/L；C反应蛋白 16.0 mg/L`，预期两项置信度均为 `0.9`。
+
+## 本地 MCP 工具 HTTP 适配
+
+Flask 前端保留原有 `POST /api/analyze`，并新增三个本地联调入口。它们调用 `phase1/mcp_server/` 中的同名工具，便于浏览器、Postman 或 Nexent 联调：
+
+- `POST /api/tools/query_reference`：`{"indicator":"ALT"}`
+- `POST /api/tools/parse_report`：`{"text":"葡萄糖 16.1 mmol/L；C反应蛋白 16.0 mg/L"}`
+- `POST /api/tools/evidence_gate`：`{"indicator":"ALT","value":30,"gender":"male"}`
+
+三态规则由 Python 引擎返回，网页不自行改写门控结论。报告级编排在缺性别或低置信度时进入 `review` 并提供澄清提示；无指标或无参考依据时进入 `abstain`。

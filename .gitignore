@@ -24,3 +24,5 @@ extract_doc.py
 .vscode/
 .idea/
 Thumbs.db
+
+*.out

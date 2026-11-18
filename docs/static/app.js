@@ -8,11 +8,24 @@ const errorBanner = document.getElementById("errorBanner");
 const reportIdInput = document.getElementById("reportId");
 const rawTextInput = document.getElementById("rawText");
 const medicationsInput = document.getElementById("currentMedications");
+const genderInput = document.getElementById("patientGender");
 const fileInput = document.getElementById("reportFile");
 const fileName = document.getElementById("fileName");
 const dropZone = document.getElementById("dropZone");
 const agentTimeline = document.getElementById("agentTimeline");
 const graphModal = document.getElementById("graphModal");
+const assetPreview = document.getElementById("assetPreview");
+const assetPreviewImage = document.getElementById("assetPreviewImage");
+const assetPreviewLabel = document.getElementById("assetPreviewLabel");
+let selectedAsset = "";
+
+const assetSamples = {
+  coagulation: { label: "图1 · 凝血四项（8 个 ↑↓ 异常指标）", image: "static/assets/medical-demo/sample-01-coagulation.png", reportId: "R007", text: "脱敏检验单图1：PT 19.40 s（9.4-12.5）；PTA 47 %（80-160）；INR 1.7（0.8-1.2）；Ratio 1.7（0.8-1.2）；APTT 40.2 s（21-37）；Fib 5.80 g/L（2-4）；TT 20.2 s（13.5-19.5）；D-Dimer 254 μg/L（DDU）（0-252）。" },
+  "glucose-crp": { label: "图2 · 葡萄糖 16.1 + C 反应蛋白 16.0", image: "static/assets/medical-demo/sample-02-glucose-crp.png", reportId: "R008", text: "脱敏检验单图2：葡萄糖 16.1 mmol/L；C反应蛋白 16.0 mg/L。" },
+  mobile: { label: "图3 · 手机长图（多模态兼容演示）", image: "static/assets/medical-demo/sample-03-mobile-long.png", reportId: "R009", text: "脱敏手机长图：乙肝表面抗原 HBsAg 0.070 S/CO；乙肝表面抗体 HBsAb 4.051 S/CO；乙肝e抗原 HBeAg 0.000 S/CO。" },
+  urine: { label: "图4 · 尿蛋白系列", image: "static/assets/medical-demo/sample-04-urine-protein.png", reportId: "R010", text: "脱敏检验单图4：尿微量白蛋白 <10.80 mg/L；α1-微球蛋白 8.00 mg/L；尿免疫球蛋白G 13.00 mg/L。" },
+  liver: { label: "图5 · 肝肾系列", image: "static/assets/medical-demo/sample-05-liver-panel.png", reportId: "R011", text: "脱敏检验单图5：总胆红素 4.3 μmol/L；直接胆红素 0.5 μmol/L；丙氨酸氨基转移酶 16 IU/L；天门冬氨酸氨基转移酶 20 IU/L。" },
+};
 
 function resizeTextarea(element) {
   if (!element) return;
@@ -32,6 +45,7 @@ const sampleTexts = {
   R003: `合成检验单 R003\nALT 40 U/L（参考范围 0—40）\nAST 38 U/L（参考范围 0—40）\n血红蛋白 145 g/L（参考范围 120—160）\n白细胞 7.1 10^9/L（参考范围 4—10）\n空腹血糖 4.8 mmol/L（参考范围 3.9—6.1）`,
   R004: `患者男，45岁。今日查血化验结果显示：丙氨酸氨基转移酶（ALT）为 68 U/L，参考范围是 9-50 U/L；天门冬氨酸氨基转移酶（AST）为 35 U/L，参考范围是 15-40 U/L。患者自述目前正在规律服用阿托伐他汀钙片。`,
   R005: `患者女，52岁。来源冲突测试：丙氨酸氨基转移酶（ALT）为 68 U/L，参考范围是 9-50 U/L。知识库中两份演示标准对该指标参考范围存在冲突。患者目前未提供用药信息。`,
+  R006: `合成检验单 R006：未提供可识别的检验指标和检测数值。`,
 };
 const sampleMedications = {
   R001: "阿托伐他汀 10 mg（合成演示用药）",
@@ -39,6 +53,7 @@ const sampleMedications = {
   R003: "",
   R004: "",
   R005: "",
+  R006: "",
 };
 
 function escapeText(value) {
@@ -53,12 +68,39 @@ function traceStatusLabel(status) {
   return ({ done: "完成", success: "完成", running: "运行中", failed: "失败", error: "失败" })[status] || status || "完成";
 }
 
+function selectAsset(assetId) {
+  const sample = assetSamples[assetId];
+  if (!sample) return;
+  selectedAsset = assetId;
+  reportIdInput.value = sample.reportId;
+  rawTextInput.value = sample.text;
+  medicationsInput.value = "";
+  if (genderInput) genderInput.value = "";
+  fileName.textContent = `${sample.label} · 已载入脱敏演示资产`;
+  if (assetPreview && assetPreviewImage && assetPreviewLabel) {
+    assetPreviewImage.src = sample.image;
+    assetPreviewLabel.textContent = sample.label;
+    assetPreview.classList.remove("hidden");
+  }
+  document.querySelectorAll(".asset-button").forEach((button) => button.classList.toggle("active", button.dataset.asset === assetId));
+  document.querySelectorAll(".sample-button").forEach((button) => button.classList.remove("active"));
+  resizeInputTextareas();
+}
+
+document.querySelectorAll(".asset-button").forEach((button) => {
+  button.addEventListener("click", () => selectAsset(button.dataset.asset));
+});
+
 function loadSample(reportId) {
   const id = sampleTexts[reportId] ? reportId : "R001";
   reportIdInput.value = id;
   rawTextInput.value = sampleTexts[id];
   medicationsInput.value = sampleMedications[id] || "";
+  if (genderInput) genderInput.value = id === "R004" ? "男" : "";
   resizeInputTextareas();
+  selectedAsset = "";
+  assetPreview?.classList.add("hidden");
+  document.querySelectorAll(".asset-button").forEach((button) => button.classList.remove("active"));
   fileName.textContent = `已载入合成样例 ${id}`;
   document.querySelectorAll(".sample-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.report === id);
@@ -83,8 +125,12 @@ document.getElementById("clearInput")?.addEventListener("click", () => {
   reportIdInput.value = "";
   rawTextInput.value = "";
   medicationsInput.value = "";
+  if (genderInput) genderInput.value = "";
   resizeInputTextareas();
   fileInput.value = "";
+  selectedAsset = "";
+  assetPreview?.classList.add("hidden");
+  document.querySelectorAll(".asset-button").forEach((button) => button.classList.remove("active"));
   fileName.textContent = "也可以直接粘贴下方报告文本";
   document.querySelectorAll(".sample-button").forEach((button) => button.classList.remove("active"));
 });
@@ -92,7 +138,13 @@ document.getElementById("clearInput")?.addEventListener("click", () => {
 fileInput?.addEventListener("change", () => {
   const file = fileInput.files?.[0];
   if (!file) return;
-  const match = file.name.match(/R00[1-5]/i);
+  const assetEntry = Object.entries(assetSamples).find(([, sample]) => file.name.toLowerCase().includes(sample.image.split("/").pop().toLowerCase()));
+  if (assetEntry) {
+    selectAsset(assetEntry[0]);
+    fileName.textContent = `${file.name} · 已载入脱敏图片样本`;
+    return;
+  }
+  const match = file.name.match(/R00[1-9]/i);
   const reportId = match ? match[0].toUpperCase() : "R001";
   loadSample(reportId);
   fileName.textContent = `${file.name} · 已载入演示文本`;
@@ -193,7 +245,7 @@ function renderResult(result) {
   const gate = result.decision_gate;
   if (gate && decisionGate) {
     const gateLabels = { pass: "通过", review: "需人工复核", abstain: "暂不输出" };
-    const evidenceLabels = { consistent: "证据一致", conflict: "检测到来源冲突", missing: "证据不完整" };
+    const evidenceLabels = { consistent: "证据一致", found: "证据已找到", conflict: "检测到来源冲突", missing: "证据不完整", low_confidence: "置信度不足" };
     decisionGate.className = `decision-gate ${gate}`;
     gateBadge.textContent = `${gateLabels[gate] || gate} · ${evidenceLabels[result.evidence_status] || result.evidence_status || "待判断"}`;
     gateAction.textContent = result.next_action || "请结合原始报告和专业人员意见复核。";
@@ -204,6 +256,15 @@ function renderResult(result) {
       item.textContent = `${conflict.field || "字段"}：${conflict.detail || "来源存在差异"}`;
       gateConflicts.append(item);
     });
+    const clarificationBox = document.getElementById("clarificationBox");
+    const clarificationPrompt = document.getElementById("clarificationPrompt");
+    const clarification = result.clarification;
+    if (clarification?.required && clarificationBox) {
+      clarificationPrompt.textContent = clarification.prompt || "请补充关键字段后重新核对。";
+      clarificationBox.classList.remove("hidden");
+    } else {
+      clarificationBox?.classList.add("hidden");
+    }
   } else {
     decisionGate?.classList.add("hidden");
   }
@@ -238,7 +299,8 @@ function renderResult(result) {
   const labResults = Array.isArray(result.lab_results) ? result.lab_results : (result.items || []);
   labResults.forEach((item) => {
     const card = document.createElement("div");
-    card.className = "metric";
+    const imageAbnormal = result.report_id === "R007" && ["high", "low"].includes(item.status);
+    card.className = `metric${imageAbnormal ? " metric-image-abnormal" : ""}`;
     const name = document.createElement("div");
     name.className = "metric-name";
     name.textContent = `${escapeText(item.test_name || item.indicator_name)} · ${escapeText(item.abbreviation || item.indicator_code)}`;
@@ -433,6 +495,14 @@ document.querySelectorAll('a[href="#openGraph"]').forEach((link) => {
   link.addEventListener("click", () => setTimeout(() => document.getElementById("openGraph")?.click(), 0));
 });
 
+document.getElementById("applyGender")?.addEventListener("click", () => {
+  if (!genderInput?.value) {
+    genderInput?.focus();
+    return;
+  }
+  form.requestSubmit();
+});
+
 async function requestAnalysis(payload) {
   try {
     const response = await fetch("/api/analyze", {
@@ -471,6 +541,8 @@ form.addEventListener("submit", async (event) => {
       report_id: reportIdInput.value.trim(),
       raw_text: rawTextInput.value,
       medications: medicationsInput.value,
+      patient_info: genderInput?.value ? { gender: genderInput.value } : {},
+      asset_id: selectedAsset,
       options: { include_trace: true, include_retrieval: true, include_graph: true },
     });
     renderResult(result);

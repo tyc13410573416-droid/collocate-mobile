@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 import requests
 from flask import Flask, jsonify, render_template, request
 
-from analysis_engine import analyze_payload
+from analysis_engine import analyze_payload, _get_mcp_server
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
@@ -62,7 +62,50 @@ def health():
         "service": "phase1-frontend",
         "mode": APP_MODE,
         "nexent_url_configured": bool(NEXENT_API_URL),
+        "mcp_tools": bool(_get_mcp_server()),
     })
+
+
+@app.route("/api/tools/query_reference", methods=["POST"])
+def tool_query_reference():
+    payload = request.get_json(silent=True) or {}
+    indicator = str(payload.get("indicator") or "").strip()
+    server = _get_mcp_server()
+    if not indicator:
+        return jsonify({"error": "indicator is required"}), 400
+    if server is None:
+        return jsonify({"error": "MCP tools are unavailable"}), 503
+    return jsonify(server.query_reference(indicator))
+
+
+@app.route("/api/tools/parse_report", methods=["POST"])
+def tool_parse_report():
+    payload = request.get_json(silent=True) or {}
+    server = _get_mcp_server()
+    if server is None:
+        return jsonify({"error": "MCP tools are unavailable"}), 503
+    return jsonify(server.parse_report(str(payload.get("text") or "")))
+
+
+@app.route("/api/tools/evidence_gate", methods=["POST"])
+def tool_evidence_gate():
+    payload = request.get_json(silent=True) or {}
+    server = _get_mcp_server()
+    indicator = str(payload.get("indicator") or "").strip()
+    if server is None:
+        return jsonify({"error": "MCP tools are unavailable"}), 503
+    if not indicator or payload.get("value") is None:
+        return jsonify({"error": "indicator and value are required"}), 400
+    try:
+        value = float(payload.get("value"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "value must be numeric"}), 400
+    return jsonify(server.evidence_gate(
+        indicator,
+        value,
+        gender=str(payload.get("gender") or ""),
+        age=str(payload.get("age") or ""),
+    ))
 
 
 @app.route("/api/analyze", methods=["POST"])

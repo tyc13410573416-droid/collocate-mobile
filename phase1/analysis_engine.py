@@ -6,12 +6,138 @@ import csv
 import hashlib
 import os
 import re
-from typing import Any
+from typing import Any, Optional
 
 
 DEFAULT_CSV = os.path.join(
     os.path.dirname(__file__), "data", "cleaned", "inspection_reports_cleaned.csv"
 )
+
+
+# 脱敏实测图片的最小演示结构。它们用于验证“图片资产 → 结构化指标卡”，
+# 不把图片中的姓名、编号等隐私字段写入结果。真实 OCR 接入后由 parse_report 替换。
+IMAGE_SAMPLE_DATA = {
+    "coagulation": {
+        "report_id": "R007",
+        "raw_text": "图1 凝血四项（脱敏演示）：PT 19.40 s ↑（9.4-12.5）；PTA 47 % ↓（80-160）；INR 1.7 ↑（0.8-1.2）；Ratio 1.7 ↑（0.8-1.2）；APTT 40.2 s ↑（21-37）；Fib 5.80 g/L ↑（2-4）；TT 20.2 s ↑（13.5-19.5）；DD 254 μg/L（DDU）↑（0-252）。",
+        "lab_results": [
+            {"test_name": "凝血酶原时间", "abbreviation": "PT", "value": 19.40, "unit": "s", "reference_range": "9.4-12.5", "status": "high"},
+            {"test_name": "凝血酶原时间活动度", "abbreviation": "PTA", "value": 47.0, "unit": "%", "reference_range": "80-160", "status": "low"},
+            {"test_name": "凝血酶原标准化比值", "abbreviation": "INR", "value": 1.7, "unit": "", "reference_range": "0.8-1.2", "status": "high"},
+            {"test_name": "凝血酶原比率", "abbreviation": "Ratio", "value": 1.7, "unit": "", "reference_range": "0.8-1.2", "status": "high"},
+            {"test_name": "活化部分凝血活酶时间", "abbreviation": "APTT", "value": 40.2, "unit": "s", "reference_range": "21-37", "status": "high"},
+            {"test_name": "纤维蛋白原含量", "abbreviation": "Fib", "value": 5.80, "unit": "g/L", "reference_range": "2-4", "status": "high"},
+            {"test_name": "凝血酶凝结时间", "abbreviation": "TT", "value": 20.2, "unit": "s", "reference_range": "13.5-19.5", "status": "high"},
+            {"test_name": "D-二聚体", "abbreviation": "DD", "value": 254.0, "unit": "μg/L (DDU)", "reference_range": "0-252", "status": "high"},
+        ],
+        "confidence": 0.86,
+    },
+    "glucose-crp": {
+        "report_id": "R008",
+        "raw_text": "图2 生化检验单（脱敏演示）：葡萄糖 16.1 mmol/L（参考范围 3.9-5.6）；C反应蛋白 16.0 mg/L（参考范围 0-10）。",
+        "lab_results": [
+            {"test_name": "葡萄糖", "abbreviation": "GLU", "value": 16.1, "unit": "mmol/L", "reference_range": "3.9-5.6", "status": "high"},
+            {"test_name": "C反应蛋白", "abbreviation": "CRP", "value": 16.0, "unit": "mg/L", "reference_range": "0-10", "status": "high"},
+        ],
+        "confidence": 0.90,
+    },
+    "mobile": {
+        "report_id": "R009",
+        "raw_text": "图3 手机长图（脱敏演示）：已载入图片，等待 OCR 结构化解析。",
+        "lab_results": [],
+        "confidence": 0.62,
+    },
+    "urine": {
+        "report_id": "R010",
+        "raw_text": "图4 尿蛋白系列（脱敏演示）：尿微量白蛋白 <10.80 mg/L；a1-微球蛋白 8.00 mg/L；尿免疫球蛋白G 13.00 mg/L；尿转铁蛋白 <2.28 mg/L。",
+        "lab_results": [
+            {"test_name": "尿微量白蛋白", "abbreviation": "mALB", "value": 10.80, "unit": "mg/L", "reference_range": "0-30", "status": "normal"},
+            {"test_name": "a1-微球蛋白", "abbreviation": "α1-MG", "value": 8.00, "unit": "mg/L", "reference_range": "0-12", "status": "normal"},
+            {"test_name": "尿免疫球蛋白G", "abbreviation": "U-IgG", "value": 13.00, "unit": "mg/L", "reference_range": "0-9.6", "status": "high"},
+            {"test_name": "尿转铁蛋白", "abbreviation": "TRF", "value": 2.28, "unit": "mg/L", "reference_range": "0-2.4", "status": "normal"},
+        ],
+        "confidence": 0.84,
+    },
+    "liver": {
+        "report_id": "R011",
+        "raw_text": "图5 肝肾系列（脱敏演示）：总胆红素 4.3 μmol/L；直接胆红素 0.5 μmol/L；间接胆红素 3.8 μmol/L；总蛋白 75.0 g/L；白蛋白 46.9 g/L；球蛋白 28.1 g/L；AST 20 IU/L；ALT 16 IU/L；碱性磷酸酶 60 IU/L。",
+        "lab_results": [
+            {"test_name": "总胆红素", "abbreviation": "TBIL", "value": 4.3, "unit": "μmol/L", "reference_range": "≤21.0", "status": "normal"},
+            {"test_name": "直接胆红素", "abbreviation": "DBIL", "value": 0.5, "unit": "μmol/L", "reference_range": "1.7-6.8", "status": "low"},
+            {"test_name": "间接胆红素", "abbreviation": "IBIL", "value": 3.8, "unit": "μmol/L", "reference_range": "1.7-14.0", "status": "normal"},
+            {"test_name": "总蛋白", "abbreviation": "TP", "value": 75.0, "unit": "g/L", "reference_range": "65-85", "status": "normal"},
+            {"test_name": "白蛋白", "abbreviation": "ALB", "value": 46.9, "unit": "g/L", "reference_range": "40-55", "status": "normal"},
+            {"test_name": "球蛋白", "abbreviation": "GLO", "value": 28.1, "unit": "g/L", "reference_range": "20-40", "status": "normal"},
+            {"test_name": "天门冬氨酸氨基转移酶", "abbreviation": "AST", "value": 20.0, "unit": "IU/L", "reference_range": "13-35", "status": "normal"},
+            {"test_name": "丙氨酸氨基转移酶", "abbreviation": "ALT", "value": 16.0, "unit": "IU/L", "reference_range": "7-40", "status": "normal"},
+            {"test_name": "碱性磷酸酶", "abbreviation": "ALP", "value": 60.0, "unit": "IU/L", "reference_range": "35-100", "status": "normal"},
+        ],
+        "confidence": 0.86,
+    },
+}
+
+
+_MCP_SERVER = None
+
+
+def _get_mcp_server():
+    """Load the bundled MCP tools for local/mock integration when available.
+
+    The web demo must also run on a minimal Python install, so failure to load
+    the optional MCP transport never blocks the in-process fallback.
+    """
+    global _MCP_SERVER
+    if _MCP_SERVER is not None:
+        return _MCP_SERVER
+    mcp_dir = os.path.join(os.path.dirname(__file__), "mcp_server")
+    if not os.path.isdir(mcp_dir):
+        return None
+    try:
+        import sys
+        if mcp_dir not in sys.path:
+            sys.path.insert(0, mcp_dir)
+        import server as mcp_server  # type: ignore
+        _MCP_SERVER = mcp_server
+    except Exception:
+        _MCP_SERVER = False
+    return _MCP_SERVER or None
+
+
+def _mcp_tool_snapshot(raw_text: str, patient_info: dict[str, Any]) -> dict[str, Any]:
+    """Run parse_report → query_reference → evidence_gate locally.
+
+    This is a deterministic adapter for the mock API. In Nexent production the
+    same three calls are made by the MCP agent over stdio/HTTP.
+    """
+    server = _get_mcp_server()
+    if server is None:
+        return {"available": False, "parse_report": None, "references": [], "evidence_gates": []}
+    parsed = server.parse_report(raw_text)
+    references = []
+    gates = []
+    gender_map = {"男": "male", "女": "female", "male": "male", "female": "female"}
+    gender = gender_map.get(str((patient_info or {}).get("gender") or ""), None)
+    for item in parsed.get("items", []):
+        indicator = item.get("indicator") or item.get("name")
+        reference = server.query_reference(indicator)
+        references.append(reference)
+        if item.get("value") is not None:
+            gates.append({
+                "indicator": indicator,
+                "name": item.get("name"),
+                "result": server.evidence_gate(
+                    indicator,
+                    float(item["value"]),
+                    gender=gender or "",
+                    age=str((patient_info or {}).get("age") or ""),
+                ),
+            })
+    return {
+        "available": True,
+        "parse_report": parsed,
+        "references": references,
+        "evidence_gates": gates,
+    }
 
 
 def load_rows(csv_path: str = DEFAULT_CSV) -> list[dict[str, Any]]:
@@ -123,9 +249,16 @@ def _parse_report_text(raw_text: str) -> dict[str, Any]:
 
 def _legacy_item(lab: dict[str, Any], report_id: str, index: int) -> dict[str, Any]:
     range_text = str(lab.get("reference_range") or "")
-    range_match = re.match(r"\s*(-?\d+(?:\.\d+)?)\s*[-—~至]\s*(-?\d+(?:\.\d+)?)", range_text)
+    range_match = re.search(r"\s*(-?\d+(?:\.\d+)?)\s*[-—~至]\s*(-?\d+(?:\.\d+)?)", range_text)
     low = float(range_match.group(1)) if range_match else None
     high = float(range_match.group(2)) if range_match else None
+    if not range_match:
+        upper = re.search(r"(?:<|≤)\s*(\d+(?:\.\d+)?)", range_text)
+        lower = re.search(r"(?:>|≥)\s*(\d+(?:\.\d+)?)", range_text)
+        if upper:
+            high = float(upper.group(1))
+        elif lower:
+            low = float(lower.group(1))
     source_id = f"SRC-{report_id}-{lab.get('abbreviation') or index}"
     return {
         "indicator_code": lab.get("abbreviation", ""),
@@ -148,21 +281,46 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
     if parsed_medications:
         parsed["medications"] = parsed_medications
 
+    image_sample = IMAGE_SAMPLE_DATA.get(str(payload.get("asset_id") or "").strip())
+    if image_sample:
+        report_id = image_sample["report_id"]
+        raw_text = image_sample["raw_text"]
+        parsed["lab_results"] = list(image_sample["lab_results"])
+        parsed["patient_info"].setdefault("age", None)
+        if parsed["patient_info"].get("gender") in (None, ""):
+            parsed["patient_info"]["gender"] = "未知"
+        parsed["metadata"]["extraction_confidence"] = image_sample["confidence"]
+
     rows = [row for row in load_rows(csv_path) if row.get("report_id") == report_id]
-    if not rows and not parsed["lab_results"]:
+    if image_sample:
+        rows = []
+    # 有原始文本时以本次解析为准；不能因为编号恰好存在于旧 CSV，
+    # 就把“无法解析”的输入误替换成另一份报告。只有默认空白请求才回退 R001。
+    if payload.get("raw_text") and not parsed["lab_results"] and report_id not in {"R001", "R002", "R003"}:
+        rows = []
+    elif not rows and not parsed["lab_results"] and report_id == "R001" and not payload.get("raw_text"):
         rows = [row for row in load_rows(csv_path) if row.get("report_id") == "R001"]
-        report_id = "R001" if rows else report_id
 
     if parsed["lab_results"]:
         lab_results = parsed["lab_results"]
         items = [_legacy_item(lab, report_id, index) for index, lab in enumerate(lab_results, start=1)]
         citations = []
         for index, item in enumerate(items, start=1):
+            low = item["reference_range"].get("low")
+            high = item["reference_range"].get("high")
+            if low is not None and high is not None:
+                ref_text = f"{low:g}—{high:g}"
+            elif high is not None:
+                ref_text = f"<{high:g}"
+            elif low is not None:
+                ref_text = f">{low:g}"
+            else:
+                ref_text = "未提供"
             citations.append({
                 "id": f"来源{index}",
                 "source_id": item["source_id"],
-                "title": f"合成检验单 {report_id}",
-                "excerpt": f"{item['indicator_code']} {item['value']} {item['unit']}；参考范围 {item['reference_range']['low']:g}—{item['reference_range']['high']:g} {item['unit']}",
+                "title": f"脱敏检验单图像 {report_id}" if image_sample else f"合成检验单 {report_id}",
+                "excerpt": f"{item['indicator_code']} {item['value']} {item['unit']}；参考范围 {ref_text}",
                 "url": f"#source-{item['source_id']}",
             })
     else:
@@ -194,7 +352,8 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
     if confidence_override is not None:
         parsed["metadata"]["extraction_confidence"] = float(confidence_override)
 
-    raw_text = str(payload.get("raw_text") or "")
+    raw_text = image_sample["raw_text"] if image_sample else str(payload.get("raw_text") or "")
+    mcp_tools = _mcp_tool_snapshot(raw_text, parsed["patient_info"])
     conflict_case = report_id.upper() == "R005" or "来源冲突" in raw_text or "参考范围冲突" in raw_text
     conflicts = []
     if conflict_case:
@@ -234,8 +393,10 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
         evidence_status = "missing"
         next_action = "补充可识别的检验指标和参考范围"
     elif extraction_confidence < 0.8 or missing_patient_fields:
+        # 报告级编排允许追问一个字段，因此“低置信度/缺性别”进入 review；
+        # 只有没有任何指标或没有参考依据时才 abstain。
         decision_gate = "review"
-        evidence_status = "missing"
+        evidence_status = "low_confidence" if extraction_confidence < 0.8 else "missing"
         next_action = "补充患者信息并人工核对抽取字段"
     else:
         decision_gate = "pass"
@@ -283,6 +444,14 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
 
     medications_list = parsed["medications"]
     warnings = []
+    clarification = None
+    if decision_gate == "review" and (parsed["patient_info"].get("gender") in (None, "未知") or extraction_confidence < 0.8):
+        clarification = {
+            "required": True,
+            "field": "gender" if parsed["patient_info"].get("gender") in (None, "未知") else "extraction_confidence",
+            "prompt": "请补充患者性别，以便准确选择参考区间。" if parsed["patient_info"].get("gender") in (None, "未知") else "请核对图片或文本中的指标数值。",
+        }
+
     if medications_list:
         first_medication = medications_list[0]["drug_name"]
         warnings.append({
@@ -317,7 +486,7 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
     if medications_list:
         graph_edges.append({"source": "indicator", "target": "medication", "label": "需核查"})
 
-    request_key = f"{report_id}:{payload.get('raw_text', '')}"
+    request_key = f"{report_id}:{raw_text}"
     request_id = "mock-" + hashlib.sha1(request_key.encode("utf-8")).hexdigest()[:10]
     trace_log = [
         {"tool": "parse_report", "status": "done", "elapsed_ms": 120},
@@ -330,6 +499,7 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
     return {
         "request_id": request_id,
         "report_id": report_id,
+        "mcp_tools": mcp_tools,
         "status": "success",
         "patient_info": parsed["patient_info"],
         "lab_results": lab_results,
@@ -340,6 +510,7 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
         "evidence_status": evidence_status,
         "conflicts": conflicts,
         "next_action": next_action,
+        "clarification": clarification,
         "source_versions": ["WS/T 405-v1（演示）", "WS/T 405-v2（演示）"] if conflict_case else ["WS/T 405-v1（演示）"],
         "answer": answer,
         "items": items,

@@ -806,3 +806,26 @@ input:focus, textarea:focus { border-color: rgba(0,103,217,.42); outline: 3px so
   .metric-reading { font-size: 32px; }
   .metric { min-height: 132px; padding: 16px; }
 }
+
+/* De-identified image sample picker: real report shape without exposing patient fields. */
+.asset-picker { margin-top: 16px; padding: 14px; border: 1px solid rgba(0,103,217,.12); border-radius: 16px; background: rgba(232,241,251,.32); }
+.asset-picker-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--text-secondary); font-size: 13px; font-weight: 600; }
+.asset-picker-heading small { color: var(--text-muted); font-size: 11px; font-weight: 400; }
+.asset-picker-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.asset-button { border: 1px solid rgba(0,103,217,.18); border-radius: 999px; padding: 7px 10px; color: var(--text-secondary); background: rgba(255,255,255,.66); font: inherit; font-size: 12px; cursor: pointer; transition: transform .2s var(--ease), color .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease); }
+.asset-button:hover, .asset-button.active { border-color: var(--brand); color: var(--brand-deep); background: var(--brand-soft); transform: translateY(-1px); }
+.asset-preview { display: grid; grid-template-columns: 72px 1fr; align-items: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,103,217,.12); color: var(--text-secondary); font-size: 12px; }
+.asset-preview img { width: 72px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(0,103,217,.16); background: #fff; }
+@media (max-width: 520px) { .asset-picker-heading { align-items: flex-start; flex-direction: column; gap: 2px; } .asset-button { font-size: 11px; } }
+
+/* Patient clarification and de-identified image verification states. */
+select { width: 100%; min-height: 44px; margin: 0; border: 1px solid rgba(225,228,232,.92); border-radius: 14px; background: rgba(255,255,255,.58); color: var(--text); padding: 10px 14px; font: inherit; font-size: 15px; }
+select:focus { border-color: rgba(0,103,217,.42); outline: 3px solid rgba(0,103,217,.1); }
+.clarification-box { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(217,119,6,.22); border-radius: 12px; color: #8a5a18; background: rgba(217,119,6,.06); font-size: 13px; }
+.clarification-box .text-button { margin-left: auto; color: var(--brand); white-space: nowrap; }
+.clarification-dot { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--state-amber); }
+
+.metric-image-abnormal { border-color: rgba(220,38,38,.22); background: rgba(220,38,38,.055); }
+.metric-image-abnormal .metric-name { color: #8f1d1d; }
+.metric-image-abnormal .metric-reading { color: #b42318; }
+.metric-image-abnormal .status-chip.low { color: #b42318; background: rgba(220,38,38,.10); }

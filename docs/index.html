@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
-    <link rel="stylesheet" href="static/app.css?v=20261116-ui-v9" />
+    <link rel="stylesheet" href="static/app.css?v=20261119-assets-v11" />
   </head>
   <body>
     <div class="app-frame">
@@ -64,9 +64,20 @@
             <input id="reportFile" type="file" accept=".png,.jpg,.jpeg,.pdf" />
             <span class="upload-icon">＋</span>
             <span class="upload-title">上传检验单图片或 PDF</span>
-            <span class="upload-help">当前为前端占位，上传后载入对应合成样例</span>
+            <span class="upload-help">支持本地图片/PDF；下方可直接选择脱敏实测样本</span>
             <span class="file-name" id="fileName">也可以直接粘贴下方报告文本</span>
           </label>
+          <div class="asset-picker" aria-label="脱敏实测样本">
+            <div class="asset-picker-heading"><span>脱敏实测样本</span><small>仅用于演示，不上传原始患者信息</small></div>
+            <div class="asset-picker-buttons">
+              <button type="button" class="asset-button" data-asset="coagulation">图1 · 凝血四项</button>
+              <button type="button" class="asset-button" data-asset="glucose-crp">图2 · 葡萄糖 + CRP</button>
+              <button type="button" class="asset-button" data-asset="mobile">图3 · 手机长图</button>
+              <button type="button" class="asset-button" data-asset="urine">图4 · 尿蛋白</button>
+              <button type="button" class="asset-button" data-asset="liver">图5 · 肝肾系列</button>
+            </div>
+            <div class="asset-preview hidden" id="assetPreview"><img id="assetPreviewImage" alt="脱敏检验单预览" /><span id="assetPreviewLabel"></span></div>
+          </div>
           <label for="rawText">报告文本</label>
           <textarea id="rawText" name="raw_text" rows="13">合成检验单 R001
 ALT 68 IU/L（参考范围 0—40）
@@ -76,7 +87,9 @@ AST 35 U/L（参考范围 0—40）
 空腹血糖 5.4 mmol/L（参考范围 3.9—6.1）</textarea>
           <label for="currentMedications">当前用药 <span class="optional-label">可选</span></label>
           <textarea id="currentMedications" name="current_medications" rows="2" placeholder="例如：阿托伐他汀 10 mg，每晚一次（仅作演示输入）"></textarea>
-          <div class="sample-row"><span>快速开始</span><div class="sample-buttons"><button type="button" class="sample-button active" data-report="R001">R001</button><button type="button" class="sample-button" data-report="R002">R002</button><button type="button" class="sample-button" data-report="R003">R003</button><button type="button" class="sample-button" data-report="R004">字段规范</button><button type="button" class="sample-button" data-report="R005">冲突复核</button><button type="button" class="text-button" id="clearInput">清空</button></div></div>
+          <label for="patientGender">患者性别 <span class="optional-label">缺失时可追问</span></label>
+          <select id="patientGender" name="patient_gender"><option value="">未提供</option><option value="男">男</option><option value="女">女</option></select>
+          <div class="sample-row"><span>快速开始</span><div class="sample-buttons"><button type="button" class="sample-button active" data-report="R001">R001</button><button type="button" class="sample-button" data-report="R002">R002</button><button type="button" class="sample-button" data-report="R003">R003</button><button type="button" class="sample-button" data-report="R004">字段规范</button><button type="button" class="sample-button" data-report="R005">冲突复核</button><button type="button" class="sample-button" data-report="R006">证据不足</button><button type="button" class="text-button" id="clearInput">清空</button></div></div>
           <button type="submit" class="primary-button" id="submitButton"><span class="button-label">生成带来源解读</span></button>
           <p class="helper">默认载入 R001 合成报告，点击按钮即可查看端到端展示。</p>
         </form>
@@ -105,6 +118,7 @@ AST 35 U/L（参考范围 0—40）
               <div class="decision-gate-heading"><span class="section-label">证据决策门控</span><span class="gate-badge" id="gateBadge"></span></div>
               <p class="gate-action" id="gateAction"></p>
               <div class="gate-conflicts" id="gateConflicts"></div>
+              <div class="clarification-box hidden" id="clarificationBox"><span class="clarification-dot"></span><span id="clarificationPrompt"></span><button type="button" class="text-button" id="applyGender">重新核对</button></div>
             </div>
             <div class="metric-grid" id="metrics"></div>
             <div class="reasoning-block">
@@ -146,8 +160,8 @@ AST 35 U/L（参考范围 0—40）
         <svg class="graph-svg" id="graphSvg" viewBox="0 0 720 270" role="img" aria-label="知识关联网络示意图"></svg>
       </div>
     </div>
-    <script src="static/demo-results.js?v=20261116-ui-v9"></script>
-    <script src="static/app.js?v=20261116-ui-v9"></script>
+    <script src="static/demo-results.js?v=20261119-assets-v11"></script>
+    <script src="static/app.js?v=20261119-assets-v11"></script>
   </body>
 </html>
 

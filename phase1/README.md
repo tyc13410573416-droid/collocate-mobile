@@ -69,3 +69,7 @@ python scripts/access_summary.py
 | Mock 联调 | `app.py` 的 `/api/analyze` + `mock_nexent_api.py` 的 `/v1/analyze` |
 | 引用编号可点开来源 | 页面右侧引用列表和来源卡片 |
 | 数据资产标识 | 清洗 CSV 中的 `synthetic`、`source`、`version_year`、`modality`、`source_id` 字段 |
+
+## 脱敏图片样本
+
+`docs/static/assets/medical-demo/` 保存了用户提供的脱敏演示图片。前端上传区提供图 1–5 的快捷选择，并在提交时携带 `asset_id`；图 1 展示 8 个 ↑↓ 异常指标卡，图 2 使用明确标注的葡萄糖/C 反应蛋白结构化结果，图 3 用于手机长图预览，图 4/5 提供结构化演示占位。图片不写入访问日志，页面结果仍带“仅用于工程演示”声明。
