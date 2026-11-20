@@ -5,7 +5,7 @@
 ## 目录
 
 - `app.py`：前端原型与 API 代理，默认运行在 `http://127.0.0.1:5050`。
-- `mock_nexent_api.py`：模拟 Nexent 分析接口，默认运行在 `http://127.0.0.1:5051`。
+- `mock_nexent_api.py`：模拟 Nexent 分析接口，默认运行在 `http://127.0.0.1:5051`，包含阶段二单位标准化和用药核查字段。
 - `analysis_engine.py`：前端和 Mock 服务共用的安全演示分析逻辑。
 - `scripts/generate_demo_data.py`：生成可复现的合成检验单数据。
 - `scripts/clean_medical_data.py`：单位统一、去重、异常方向标记和数据资产字段整理。
@@ -17,6 +17,7 @@
 - `templates/`、`static/`：前端页面。
 - `docs/api_contract.md`：Mock API 接口约定。
 - `docs/real_data_plan.md`：公开脱敏数据的选型、合规边界和接入方案。
+- `mcp_server/`：本地 `query_reference`、`parse_report`、`normalize`、`check_interaction`、`evidence_gate` 工具和离线验证脚本。
 
 ## 生成数据与图表
 

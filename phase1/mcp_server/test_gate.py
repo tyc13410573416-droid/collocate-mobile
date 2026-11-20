@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""验证 v3 门控版三个工具：区间解析、门控三态、parse_report、query_reference。"""
+"""验证阶段二联调工具：区间解析、门控三态、解析、单位和用药核查。"""
 import json
 import sys
 from pathlib import Path
@@ -94,7 +94,30 @@ check("图2 置信度", all(item["confidence"] >= 0.9 for item in image2["items"
 
 print()
 print("=" * 60)
-print("四、query_reference 工具（新字段）")
+print("五、normalize / check_interaction 工具")
+print("=" * 60)
+n1 = server.normalize("HGB", 11.8, "g/dL", "g/L")
+check("单位换算", n1["status"] == "pass" and n1["value"] == 118.0, str(n1))
+n2 = server.normalize("ALT", 68, "U/L")
+check("同单位保持", n2["status"] == "pass" and n2["value"] == 68.0, str(n2))
+n3 = server.normalize("ALT", 68, "未知单位", "U/L")
+check("未知换算进入 review", n3["status"] == "review", str(n3))
+n4 = server.normalize("BUN", 10, "mg/dL", "mmol/L")
+check("非血糖换算不猜测", n4["status"] == "review", str(n4))
+i1 = server.check_interaction(
+    [{"drug_name": "阿托伐他汀 10 mg"}],
+    [{"abbreviation": "ALT", "status": "high"}],
+)
+check("用药核查命中规则", i1["status"] == "review" and len(i1["warnings"]) == 1, str(i1))
+i2 = server.check_interaction(
+    [{"drug_name": "阿托伐他汀 10 mg"}],
+    [{"abbreviation": "WBC", "status": "normal"}],
+)
+check("未命中规则不误报", i2["status"] == "pass" and not i2["warnings"], str(i2))
+
+print()
+print("=" * 60)
+print("六、query_reference 工具（新字段）")
 print("=" * 60)
 q = server.query_reference("ALT")
 check("返回 found", q["found"] is True)
@@ -105,7 +128,7 @@ check("有 effective_date", bool(q.get("effective_date")), q.get("effective_date
 
 print()
 print("=" * 60)
-print("五、evidence_gate 工具（走 MCP 工具入口）")
+print("七、evidence_gate 工具（走 MCP 工具入口）")
 print("=" * 60)
 eg = server.evidence_gate("ALT", 200, "male")
 check("工具入口 pass", eg["decision_gate"] == "pass", str(eg))

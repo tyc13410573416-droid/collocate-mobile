@@ -233,6 +233,31 @@ function renderResult(result) {
     warningsBlock.classList.add("hidden");
   }
 
+  const normalizationBlock = document.getElementById("normalizationBlock");
+  const normalizationRows = document.getElementById("normalizationRows");
+  normalizationRows?.replaceChildren();
+  const normalizationItems = Array.isArray(result.normalization) ? result.normalization : [];
+  if (normalizationItems.length && normalizationBlock) {
+    normalizationBlock.classList.remove("hidden");
+    normalizationItems.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = `normalization-row ${item.status === "review" ? "review" : ""}`;
+      const detail = document.createElement("span");
+      const original = item.original_value == null ? "—" : `${item.original_value} ${item.original_unit || ""}`;
+      const converted = item.value == null ? (item.message || "待人工核对") : `${item.value} ${item.unit || ""}`;
+      const indicator = document.createElement("strong");
+      indicator.textContent = item.indicator || "指标";
+      detail.append(indicator, document.createTextNode(` · ${original} → ${converted}`));
+      const status = document.createElement("span");
+      status.className = "normalization-status";
+      status.textContent = item.status === "pass" ? "已标准化" : "需核对";
+      row.append(detail, status);
+      normalizationRows.append(row);
+    });
+  } else {
+    normalizationBlock?.classList.add("hidden");
+  }
+
   const metrics = document.getElementById("metrics");
   metrics.replaceChildren();
   const labResults = Array.isArray(result.lab_results) ? result.lab_results : (result.items || []);

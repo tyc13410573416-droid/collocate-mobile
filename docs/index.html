@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
-    <link rel="stylesheet" href="static/app.css?v=20261119-assets-v11" />
+    <link rel="stylesheet" href="static/app.css?v=20261120-stage2-v12" />
   </head>
   <body>
     <div class="app-frame">
@@ -102,7 +102,7 @@ AST 35 U/L（参考范围 0—40）
             </div>
             <div class="output-meta"><span class="request-id" id="requestId">尚未生成</span><span class="model-meta hidden" id="modelMeta"></span></div>
           </div>
-          <div id="loadingState" class="loading-state hidden"><span class="spinner"></span><div><strong>正在检索并整理</strong><span>Agent 正在读取报告、核对参考范围并准备来源引用…</span><div class="agent-timeline" id="agentTimeline"><span class="agent-step pending" data-agent-step="parse_report">抽取</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="query_reference">检索</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="check_interaction">核查</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="summarize">汇总</span></div></div></div>
+          <div id="loadingState" class="loading-state hidden"><span class="spinner"></span><div><strong>正在检索并整理</strong><span>Agent 正在读取报告、核对参考范围并准备来源引用…</span><div class="agent-timeline" id="agentTimeline"><span class="agent-step pending" data-agent-step="parse_report">抽取</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="normalize">标准化</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="query_reference">检索</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="check_interaction">核查</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="summarize">汇总</span></div></div></div>
           <div id="emptyState" class="empty-state"><div class="empty-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 23V9m0 0-5 5m5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 25h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><strong>等待一份检验报告</strong><span>提交左侧合成报告后，这里会显示解读摘要、指标状态和可点击来源。</span></div>
           <div id="errorBanner" class="error-banner hidden" role="alert"></div>
           <div id="resultPanel" class="hidden">
@@ -120,6 +120,10 @@ AST 35 U/L（参考范围 0—40）
               <div class="gate-conflicts" id="gateConflicts"></div>
               <div class="clarification-box hidden" id="clarificationBox"><span class="clarification-dot"></span><span id="clarificationPrompt"></span><button type="button" class="text-button" id="applyGender">重新核对</button></div>
             </div>
+            <details class="normalization-block compact-details hidden" id="normalizationBlock">
+              <summary class="section-heading-row"><span class="section-label">单位标准化</span><span class="evidence-tag">可审计换算</span></summary>
+              <div class="details-content"><div id="normalizationRows" class="normalization-rows"></div></div>
+            </details>
             <div class="metric-grid" id="metrics"></div>
             <div class="reasoning-block">
               <p class="section-label">可溯源推理链</p>
@@ -160,8 +164,8 @@ AST 35 U/L（参考范围 0—40）
         <svg class="graph-svg" id="graphSvg" viewBox="0 0 720 270" role="img" aria-label="知识关联网络示意图"></svg>
       </div>
     </div>
-    <script src="static/demo-results.js?v=20261119-assets-v11"></script>
-    <script src="static/app.js?v=20261119-assets-v11"></script>
+    <script src="static/demo-results.js?v=20261120-stage2-v12"></script>
+    <script src="static/app.js?v=20261120-stage2-v12"></script>
   </body>
 </html>
 

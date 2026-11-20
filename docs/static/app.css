@@ -763,6 +763,12 @@ input:focus, textarea:focus { border-color: rgba(0,103,217,.42); outline: 3px so
 .gate-badge, .warning-heading > span { border-radius: 999px; padding: 5px 9px; font-size: 11px; }
 .gate-badge { color: var(--text-secondary); background: rgba(225,228,232,.55); }
 .decision-gate.review .gate-badge, .warning-heading > span { color: var(--state-amber); background: rgba(217,119,6,.1); }
+.normalization-block { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(225,228,232,.92); }
+.normalization-rows { display: grid; gap: 8px; margin-top: 10px; }
+.normalization-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 11px; border: 1px solid rgba(225,228,232,.8); border-radius: 10px; background: rgba(255,255,255,.52); color: var(--text-secondary); font-size: 12px; }
+.normalization-row strong { color: var(--text-primary); font-weight: 600; }
+.normalization-row .normalization-status { color: var(--brand); white-space: nowrap; }
+.normalization-row.review .normalization-status { color: var(--state-amber); }
 .compact-details { border-color: rgba(225,228,232,.92); }
 .compact-details > summary .section-label { color: var(--text-secondary); }
 .evidence-tag { color: var(--text-muted); background: rgba(225,228,232,.5); }

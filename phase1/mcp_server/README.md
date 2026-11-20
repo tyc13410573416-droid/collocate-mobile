@@ -8,6 +8,8 @@
 |---|---|---|
 | `query_reference` | 查参考区间 | `source_id` / `source_version` / `gender_range` |
 | `parse_report` | 解析检验单文本 | 指标名、数值、单位、`confidence` |
+| `normalize` | 单位标准化 | 原值/原单位、标准值/标准单位、换算因子、`status` |
+| `check_interaction` | 用药与异常指标核查 | `warnings`、`source_id`、`next_action` |
 | `evidence_gate` | 三态判定 | `decision_gate`、`confidence`、`evidence_status`、`conflicts`、`next_action`、`source_versions` |
 
 ## 文件
@@ -16,7 +18,7 @@
 - `range_parser.py`：分性别、年龄备注、单侧上/下限和通用区间解析；
 - `gate_engine.py`：确定性的三态规则引擎；
 - `data/references.json`：34 条参考区间知识库；
-- `test_gate.py`：区间解析、三态、图 2 双指标和工具入口单测；
+- `test_gate.py`：区间解析、三态、图 2 双指标、单位和用药核查单测；
 - `e2e_test.py`：有 `fastmcp` 时走真实 stdio，没有时走离线工具链校验；
 - `requirements.txt`：真实 MCP transport 的可选依赖。
 

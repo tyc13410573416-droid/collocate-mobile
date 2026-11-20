@@ -112,6 +112,40 @@ def tool_evidence_gate():
     ))
 
 
+@app.route("/api/tools/normalize", methods=["POST"])
+def tool_normalize():
+    """本地联调入口：统一检验单位，真实 Nexent 接入时保持字段结构不变。"""
+    payload = request.get_json(silent=True) or {}
+    server = _get_mcp_server()
+    indicator = str(payload.get("indicator") or "").strip()
+    if server is None:
+        return jsonify({"error": "MCP tools are unavailable"}), 503
+    if not indicator or payload.get("value") is None or not payload.get("from_unit"):
+        return jsonify({"error": "indicator, value and from_unit are required"}), 400
+    try:
+        value = float(payload.get("value"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "value must be numeric"}), 400
+    return jsonify(server.normalize(
+        indicator,
+        value,
+        str(payload.get("from_unit") or ""),
+        str(payload.get("to_unit") or ""),
+    ))
+
+
+@app.route("/api/tools/check_interaction", methods=["POST"])
+def tool_check_interaction():
+    """本地联调入口：用药与指标规则核查，只返回复核提示。"""
+    payload = request.get_json(silent=True) or {}
+    server = _get_mcp_server()
+    if server is None:
+        return jsonify({"error": "MCP tools are unavailable"}), 503
+    medications = payload.get("medications") or payload.get("current_medications") or []
+    indicators = payload.get("indicators") or payload.get("lab_results") or []
+    return jsonify(server.check_interaction(medications, indicators))
+
+
 @app.route("/api/analyze", methods=["POST"])
 def proxy_analyze():
     payload = request.get_json(silent=True) or {}

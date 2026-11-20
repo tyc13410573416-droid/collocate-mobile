@@ -48,6 +48,70 @@
 
 `decision_gate` 只能是 `pass`、`review` 或 `abstain`。来源版本冲突返回 `review`（只展示冲突，不给确定结论）；患者关键信息缺失、抽取置信度低于 0.8 或没有足够指标和参考范围时返回 `abstain`（拒答或追问）。前端会显示门控状态、冲突字段和下一步动作，不把门控结果包装成诊断结论。
 
+## 阶段二工具协议
+
+### `normalize`
+
+请求：
+
+```json
+{
+  "indicator": "HGB",
+  "value": 11.8,
+  "from_unit": "g/dL",
+  "to_unit": "g/L"
+}
+```
+
+返回：
+
+```json
+{
+  "status": "pass",
+  "indicator": "HGB",
+  "value": 118.0,
+  "unit": "g/L",
+  "original_value": 11.8,
+  "original_unit": "g/dL",
+  "conversion": "g/dL → g/L",
+  "factor": 10.0,
+  "confidence": 0.99
+}
+```
+
+无法确定换算时返回 `status: "review"`，前端保留原始值并提示人工核对，不静默猜测。
+
+### `check_interaction`
+
+请求：
+
+```json
+{
+  "medications": [{"drug_name": "阿托伐他汀 10 mg"}],
+  "indicators": [{"abbreviation": "ALT", "status": "high"}]
+}
+```
+
+返回：
+
+```json
+{
+  "status": "review",
+  "warnings": [
+    {
+      "drug": "阿托伐他汀 10 mg",
+      "risk": "发现肝酶相关异常，需结合药品说明书与专业人员复核用药风险",
+      "source": "阿托伐他汀药品说明书（演示规则）",
+      "source_id": "SRC-DRUG-ATORVASTATIN-001",
+      "severity": "review"
+    }
+  ],
+  "next_action": "请由专业人员结合说明书复核"
+}
+```
+
+该工具只产生复核提示，不输出停药、换药或剂量调整建议。真实药品规则接入后，字段结构保持不变。
+
 ## `POST /v1/analyze`
 
 请求体：
@@ -171,5 +235,7 @@ Flask 前端保留原有 `POST /api/analyze`，并新增三个本地联调入口
 - `POST /api/tools/query_reference`：`{"indicator":"ALT"}`
 - `POST /api/tools/parse_report`：`{"text":"葡萄糖 16.1 mmol/L；C反应蛋白 16.0 mg/L"}`
 - `POST /api/tools/evidence_gate`：`{"indicator":"ALT","value":30,"gender":"male"}`
+- `POST /api/tools/normalize`：`{"indicator":"HGB","value":11.8,"from_unit":"g/dL","to_unit":"g/L"}`
+- `POST /api/tools/check_interaction`：`{"medications":[{"drug_name":"阿托伐他汀"}],"indicators":[{"abbreviation":"ALT","status":"high"}]}`
 
 三态规则由 Python 引擎返回，网页不自行改写门控结论。报告级编排在缺性别或低置信度时进入 `review` 并提供澄清提示；无指标或无参考依据时进入 `abstain`。

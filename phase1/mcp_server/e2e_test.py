@@ -17,7 +17,7 @@ def _direct_check():
     import server
 
     print("fastmcp 不可用，执行离线工具链校验")
-    tools = ["query_reference", "parse_report", "evidence_gate"]
+    tools = ["query_reference", "parse_report", "normalize", "check_interaction", "evidence_gate"]
     print("注册工具:", tools)
     r1 = server.query_reference("肌酐")
     print("\n[query_reference] 肌酐 ->", r1)
@@ -27,10 +27,19 @@ def _direct_check():
     print("\n[evidence_gate] ALT=200 male ->", r3)
     r4 = server.evidence_gate("ALT", 30, gender="")
     print("\n[evidence_gate] ALT=30 缺性别 ->", r4)
+    r5 = server.normalize("HGB", 11.8, "g/dL", "g/L")
+    print("\n[normalize] HGB 11.8 g/dL ->", r5)
+    r6 = server.check_interaction(
+        [{"drug_name": "阿托伐他汀 10 mg"}],
+        [{"abbreviation": "ALT", "status": "high"}],
+    )
+    print("\n[check_interaction] ->", r6)
     assert r1["found"]
     assert r2["matched_count"] == 2
     assert r3["decision_gate"] == "pass"
     assert r4["decision_gate"] == "review"
+    assert r5["status"] == "pass" and r5["value"] == 118.0
+    assert r6["status"] == "review" and r6["warnings"]
     print("\n离线端到端校验通过")
 
 
@@ -60,6 +69,15 @@ async def _stdio_check():
 
         r4 = await client.call_tool("evidence_gate", {"indicator": "ALT", "value": 30, "gender": ""})
         print("\n[evidence_gate] ALT=30 缺性别 ->", r4)
+
+        r5 = await client.call_tool("normalize", {"indicator": "HGB", "value": 11.8, "from_unit": "g/dL", "to_unit": "g/L"})
+        print("\n[normalize] ->", r5)
+
+        r6 = await client.call_tool("check_interaction", {
+            "medications": [{"drug_name": "阿托伐他汀 10 mg"}],
+            "indicators": [{"abbreviation": "ALT", "status": "high"}],
+        })
+        print("\n[check_interaction] ->", r6)
 
 
 def main():

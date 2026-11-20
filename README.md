@@ -33,7 +33,8 @@ python app.py
 - `phase2/`：Nexent HTTP 客户端；
 - `phase1/docs/api_contract.md`：字段协议和证据门控协议；
 - `phase1/docs/real_data_plan.md`：公开脱敏数据使用边界；
-- `phase1/mcp_server/`：`query_reference`、`parse_report`、`evidence_gate`、区间解析、34 条参考区间和验证脚本；
+- `phase1/docs/phase2_ready_checklist.md`：阶段二接口、数据和验收清单；
+- `phase1/mcp_server/`：`query_reference`、`parse_report`、`normalize`、`check_interaction`、`evidence_gate`、区间解析、34 条参考区间和验证脚本；
 - `docs/static/assets/medical-demo/`：明确标注的脱敏图片演示资产。
 
 
@@ -43,5 +44,12 @@ python app.py
 python phase1/mcp_server/test_gate.py
 python phase1/mcp_server/e2e_test.py
 ```
+
+阶段二新增的本地联调入口：
+
+- `POST /api/tools/normalize`：单位标准化；
+- `POST /api/tools/check_interaction`：用药与异常指标规则核查。
+
+真实 Nexent 接入前，只需替换 `NEXENT_API_URL` 和 `NEXENT_API_KEY`，前端字段结构保持不变。
 
 在没有 `fastmcp` 的 Python 环境中，端到端脚本会自动执行同一工具链的离线校验；安装 `phase1/mcp_server/requirements.txt` 后可切换到真实 MCP stdio/HTTP 传输。

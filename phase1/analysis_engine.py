@@ -348,6 +348,28 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
             "status": item["status"] if item["status"] in {"high", "low", "normal"} else "normal",
         } for item in items]
 
+    # 阶段二联调的确定性单位标准化：记录换算证据，未知换算进入 review，
+    # 不在前端静默修改原始数值。真实 Nexent 接入后可直接替换为 MCP 返回值。
+    normalization = []
+    tool_server = _get_mcp_server()
+    if tool_server is not None:
+        for lab in lab_results:
+            if lab.get("value") is None or not lab.get("unit"):
+                continue
+            indicator = lab.get("abbreviation") or lab.get("test_name") or ""
+            try:
+                normalization.append(tool_server.normalize(
+                    indicator,
+                    float(lab["value"]),
+                    str(lab.get("unit") or ""),
+                    "",
+                ))
+            except Exception as exc:  # pragma: no cover - defensive adapter boundary
+                normalization.append({
+                    "status": "review", "indicator": indicator,
+                    "message": f"单位标准化失败：{exc}",
+                })
+
     confidence_override = (payload.get("metadata") or {}).get("extraction_confidence") if isinstance(payload.get("metadata"), dict) else None
     if confidence_override is not None:
         parsed["metadata"]["extraction_confidence"] = float(confidence_override)
@@ -452,16 +474,18 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
             "prompt": "请补充患者性别，以便准确选择参考区间。" if parsed["patient_info"].get("gender") in (None, "未知") else "请核对图片或文本中的指标数值。",
         }
 
-    if medications_list:
-        first_medication = medications_list[0]["drug_name"]
-        warnings.append({
-            "drug": first_medication,
-            "risk": "需要结合异常指标、药品说明书和专业人员意见进一步核查",
-            "source": "用药说明书 / 知识库引用（演示占位）",
-            "level": "review",
-            "severity": "review",
-            "sources": ["SRC-DRUG-001"],
-        })
+    interaction = {"status": "pass", "warnings": [], "checked_medications": [], "checked_indicators": []}
+    if tool_server is not None and medications_list:
+        try:
+            interaction = tool_server.check_interaction(medications_list, lab_results)
+            warnings = list(interaction.get("warnings") or [])
+        except Exception as exc:  # pragma: no cover - defensive adapter boundary
+            interaction = {
+                "status": "review", "warnings": [],
+                "next_action": f"用药核查暂不可用：{exc}",
+                "checked_medications": [item.get("drug_name") for item in medications_list],
+                "checked_indicators": [],
+            }
 
     retrieval = {
         "vector_hits": 10,
@@ -490,6 +514,7 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
     request_id = "mock-" + hashlib.sha1(request_key.encode("utf-8")).hexdigest()[:10]
     trace_log = [
         {"tool": "parse_report", "status": "done", "elapsed_ms": 120},
+        {"tool": "normalize", "status": "done" if normalization else "review", "elapsed_ms": 90},
         {"tool": "query_reference", "status": "done", "elapsed_ms": 340},
     ]
     if medications_list:
@@ -517,6 +542,8 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
         "citations": citations,
         "reasoning": reasoning,
         "warnings": warnings,
+        "interaction": interaction,
+        "normalization": normalization,
         "retrieval": retrieval,
         "knowledge_evidence": knowledge_evidence,
         "graph": {"nodes": graph_nodes, "edges": graph_edges},

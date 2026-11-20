@@ -57,4 +57,30 @@ class NexentClient:
             raise NexentClientError("Nexent 响应中的 items 必须是数组")
         if "lab_results" in result and not isinstance(result["lab_results"], list):
             raise NexentClientError("Nexent 响应中的 lab_results 必须是数组")
+        for item in result.get("lab_results", result.get("items", [])):
+            if not isinstance(item, dict):
+                raise NexentClientError("Nexent 响应中的指标项必须是对象")
+            status = item.get("status")
+            if status is not None and status not in {"high", "low", "normal", "unknown"}:
+                raise NexentClientError(f"Nexent 响应中的 status 不合法：{status}")
+            if "value" in item and item["value"] is not None and not isinstance(item["value"], (int, float)):
+                raise NexentClientError("Nexent 响应中的 value 必须是数值")
+        for citation in result["citations"]:
+            if not isinstance(citation, dict) or not citation.get("source_id"):
+                raise NexentClientError("Nexent 响应中的 citations 必须包含 source_id")
+        if "trace_log" in result and not isinstance(result["trace_log"], list):
+            raise NexentClientError("Nexent 响应中的 trace_log 必须是数组")
+        metadata = result.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise NexentClientError("Nexent 响应中的 metadata 必须是对象")
+        confidence = (metadata or {}).get("extraction_confidence")
+        if confidence is not None:
+            try:
+                confidence = float(confidence)
+            except (TypeError, ValueError) as exc:
+                raise NexentClientError("extraction_confidence 必须是 0 到 1 的数值") from exc
+            if not 0 <= confidence <= 1:
+                raise NexentClientError("extraction_confidence 必须在 0 到 1 之间")
+        if "decision_gate" in result and result["decision_gate"] not in {"pass", "review", "abstain"}:
+            raise NexentClientError("decision_gate 必须是 pass、review 或 abstain")
 
