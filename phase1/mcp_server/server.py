@@ -229,7 +229,7 @@ def _indicator_names(value: Any) -> List[str]:
 
 
 @mcp.tool
-def check_interaction(medications: Any, indicators: Any = None) -> dict:
+def check_interaction(medications: List[Any], indicators: Optional[List[Any]] = None) -> dict:
     """检查当前用药与异常指标是否命中已配置的复核规则。
 
     这是安全门控提示，不是诊断、停药或剂量调整建议。未命中规则时返回空
