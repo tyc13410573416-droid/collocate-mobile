@@ -428,18 +428,29 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
     high = [item for item in items if item["status"] == "high"]
     low = [item for item in items if item["status"] == "low"]
     normal = [item for item in items if item["status"] == "normal"]
-    abnormal_names = [item["indicator_name"] for item in high + low]
-    if abnormal_names:
-        abnormal_text = "、".join(abnormal_names)
+    # V2 提示词约束：review 状态只说明风险和缺口，不继续输出偏高/偏低结论。
+    strict_review = decision_gate == "review"
+    if decision_gate == "abstain":
+        answer = "当前输入缺少可用的检验依据，暂不输出确定性解读。建议补充原始报告并咨询专业人员。"
+    elif strict_review:
         answer = (
-            f"演示结果：共读取 {len(items)} 项指标，其中 {len(high)} 项高于参考范围、"
-            f"{len(low)} 项低于参考范围，{len(normal)} 项在参考范围内。"
-            f"异常标记涉及：{abnormal_text}。请结合原始报告和专业人员意见进一步判断。"
+            "当前处于安全复核状态，暂不能给出确定的偏高、偏低或正常结论。"
+            f"复核原因：{next_action}。请核对原始报告、患者信息和来源版本后再继续。"
         )
     else:
-        answer = f"演示结果：共读取 {len(items)} 项指标，当前样本均落在给定参考范围内。请结合原始报告复核。"
-    if decision_gate != "pass":
-        answer = f"{answer} 当前决策门控：{next_action}。"
+        citation_by_index = {index: citation.get("id", f"来源{index}") for index, citation in enumerate(citations, start=1)}
+        abnormal_parts = []
+        for index, item in enumerate(items, start=1):
+            if item["status"] in {"high", "low"}:
+                abnormal_parts.append(f"{item['indicator_name']}[{citation_by_index.get(index, f'来源{index}')}]" )
+        if abnormal_parts:
+            answer = (
+                f"检验结果共读取 {len(items)} 项，其中 {len(high)} 项高于参考范围、"
+                f"{len(low)} 项低于参考范围，{len(normal)} 项在参考范围内。"
+                f"异常指标包括：{'、'.join(abnormal_parts)}。请结合原始报告和专业人员意见进一步判断。"
+            )
+        else:
+            answer = f"检验结果共读取 {len(items)} 项，当前样本均落在给定参考范围内。请结合原始报告复核。"
 
     reasoning = [
         {
@@ -550,5 +561,5 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
         "trace": [step["tool"] for step in trace_log],
         "trace_log": trace_log,
         "meta": {"llm_model": "glm-4.7", "embedding_model": "embedding-3", "rag_config_count": 34},
-        "disclaimer": "仅用于工程演示，不构成诊断或用药建议。",
+        "disclaimer": "本结果仅供辅助参考，不构成任何临床诊断或用药建议。医学决策请务必以执业医师意见为准。",
     }

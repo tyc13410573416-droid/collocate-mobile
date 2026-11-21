@@ -34,6 +34,7 @@ python app.py
 - `phase1/docs/api_contract.md`：字段协议和证据门控协议；
 - `phase1/docs/real_data_plan.md`：公开脱敏数据使用边界；
 - `phase1/docs/phase2_ready_checklist.md`：阶段二接口、数据和验收清单；
+- `phase1/docs/system_prompt_v2.md`：Nexent Agent 的 V2 安全提示词和三态输出边界；
 - `phase1/mcp_server/`：`query_reference`、`parse_report`、`normalize`、`check_interaction`、`evidence_gate`、区间解析、34 条参考区间和验证脚本；
 - `docs/static/assets/medical-demo/`：明确标注的脱敏图片演示资产。
 
