@@ -293,6 +293,19 @@ def _extract_value(tail: str):
     return float(m.group(1)) if m else None
 
 
+def _extract_patient_info(text: str) -> dict:
+    """从报告文本提取后续门控必须使用的年龄和性别。"""
+    value = str(text or "")
+    gender = "未知"
+    if re.search(r"(?:患者|性别|本人)?\s*(?:男|男性|male)\b", value, re.IGNORECASE):
+        gender = "男"
+    elif re.search(r"(?:患者|性别|本人)?\s*(?:女|女性|female)\b", value, re.IGNORECASE):
+        gender = "女"
+    age_match = re.search(r"(?:患者|年龄|age)?[^\n。；;]{0,12}?([0-9]{1,3})\s*(?:岁|years?\s*old)\b", value, re.IGNORECASE)
+    age = int(age_match.group(1)) if age_match else None
+    return {"age": age, "gender": gender}
+
+
 def _build_candidates():
     """构建 (别名, 条目) 列表，按别名长度降序，避免短别名截断长别名。"""
     candidates = []
@@ -346,10 +359,15 @@ def parse_report(text: str) -> dict:
             "confidence": 0.9 if value is not None else 0.5,
         })
 
+    patient_info = _extract_patient_info(text)
     return {
         "matched_count": len(items),
         "items": items,
         "raw_text": text,
+        "patient_info": patient_info,
+        "metadata": {
+            "extraction_confidence": 0.95 if items and patient_info["gender"] != "未知" else (0.9 if items else 0.0)
+        },
     }
 
 
@@ -372,6 +390,7 @@ def evidence_gate(indicator: str, value: float, gender: str = "", age: str = "")
     item = _REF_INDEX.get(indicator.strip().lower())
     refs = [_enhance(item)] if item else []
     g = (gender or "").strip().lower()
+    g = {"男": "male", "男性": "male", "女": "female", "女性": "female"}.get(g, g)
     if g not in ("male", "female"):
         g = None
     return gate_evaluate(indicator, value, gender=g, age=age or None, references=refs)

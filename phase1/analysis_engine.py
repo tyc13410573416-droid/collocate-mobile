@@ -203,10 +203,11 @@ def _parse_report_text(raw_text: str) -> dict[str, Any]:
     diagnosis or manufacture a reference range.
     """
     text = str(raw_text or "")
-    gender_match = re.search(r"患者\s*(男|女)", text)
+    gender_match = re.search(r"(?:患者|性别|本人)?\s*(男|男性|女|女性|male|female)", text, re.IGNORECASE)
     age_match = re.search(r"患者[^。；;\n]{0,20}?([0-9]{1,3})\s*岁", text)
     age = int(age_match.group(1)) if age_match else None
     gender = gender_match.group(1) if gender_match else "未知"
+    gender = {"男性": "男", "male": "男", "女性": "女", "female": "女"}.get(gender.lower(), gender) if gender else "未知"
 
     lab_results: list[dict[str, Any]] = []
     pattern = re.compile(

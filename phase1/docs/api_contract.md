@@ -29,6 +29,8 @@
 }
 ```
 
+`parse_report` 同时返回 `patient_info.age` 和 `patient_info.gender`。Agent 必须把这两个字段继续传给 `query_reference` / `evidence_gate`，不能只把“男性/女性”当作普通文本丢弃。
+
 约束：`value` 必须是纯浮点数；`status` 只能是 `high`、`low`、`normal`；年龄和性别要随后的知识库查询一起传入。当前网页在 `extraction_confidence < 0.8` 时显示红色“需人工核对”提示。为兼容阶段一旧页面，接口可以同时保留 `items` 字段。
 
 ## 证据决策门控字段
