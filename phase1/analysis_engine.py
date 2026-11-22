@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import os
 import re
 from typing import Any, Optional
@@ -239,7 +240,8 @@ def _parse_report_text(raw_text: str) -> dict[str, Any]:
     if medication_match:
         medications.append({"drug_name": medication_match.group(1)})
 
-    confidence = 0.95 if age is not None and gender != "未知" and lab_results else 0.72
+    # Extraction quality and demographic completeness are separate concerns.
+    confidence = 0.95 if lab_results else 0.72
     return {
         "patient_info": {"age": age, "gender": gender},
         "lab_results": lab_results,
@@ -295,6 +297,13 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
     rows = [row for row in load_rows(csv_path) if row.get("report_id") == report_id]
     if image_sample:
         rows = []
+    if rows and payload.get("raw_text") and not parsed["lab_results"]:
+        # A recognised id is not evidence that the user submitted its old report.
+        manifest_path = os.path.join(os.path.dirname(__file__), "data", "web_demo_inputs.json")
+        with open(manifest_path, encoding="utf-8") as handle:
+            sample = json.load(handle).get(report_id, {})
+        if str(payload["raw_text"]).strip() != str(sample.get("text", "")).strip():
+            rows = []
     # 有原始文本时以本次解析为准；不能因为编号恰好存在于旧 CSV，
     # 就把“无法解析”的输入误替换成另一份报告。只有默认空白请求才回退 R001。
     if payload.get("raw_text") and not parsed["lab_results"] and report_id not in {"R001", "R002", "R003"}:
@@ -304,6 +313,20 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
 
     if parsed["lab_results"]:
         lab_results = parsed["lab_results"]
+        # A sex correction must also select the matching interval, not just change
+        # the displayed patient label. Keep the reported interval for auditing.
+        sex = {"男": "male", "女": "female", "male": "male", "female": "female"}.get(parsed["patient_info"].get("gender"))
+        server = _get_mcp_server()
+        if sex and server is not None and not image_sample:
+            for lab in lab_results:
+                ref = server.query_reference(lab.get("abbreviation") or lab.get("test_name") or "")
+                selected = ref.get("gender_range", {}).get(sex)
+                if selected and selected.get("low") is not None and selected.get("high") is not None:
+                    if str(lab.get("unit")).lower() not in {str(ref.get("unit")).lower(), "iu/l"}:
+                        continue
+                    lab["report_reference_range"] = lab.get("reference_range")
+                    lab["reference_range"] = "{:g}-{:g}".format(selected["low"], selected["high"])
+                    lab["status"] = _status_for(lab["value"], selected["low"], selected["high"])
         items = [_legacy_item(lab, report_id, index) for index, lab in enumerate(lab_results, start=1)]
         citations = []
         for index, item in enumerate(items, start=1):
@@ -382,31 +405,38 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
     if conflict_case:
         conflicts.append({
             "field": "reference_range",
-            "sources": ["SRC-RANGE-A", "SRC-RANGE-B"],
-            "detail": "两份演示标准对 ALT 参考范围给出了不同版本，需人工确认适用版本。",
+            "dimension": "male",
+            "source_a": "DEMO-ALT-A",
+            "source_b": "DEMO-ALT-B",
+            "range_a": "9–50 U/L",
+            "range_b": "7–40 U/L",
+            "synthetic": True,
+            "sources": ["DEMO-ALT-A", "DEMO-ALT-B"],
+            "detail": "合成数据：来源 A 为 9–50 U/L，来源 B 为 7–40 U/L。仅验证冲突复核流程，不代表真实标准修订。",
         })
         citations.extend([
             {
                 "id": "标准来源A",
-                "source_id": "SRC-RANGE-A",
-                "title": "WS/T 405 参考区间 · v1（演示）",
-                "excerpt": "ALT 参考范围：0-40 U/L",
-                "url": "#source-SRC-RANGE-A",
+                "source_id": "DEMO-ALT-A",
+                "title": "DEMO-ALT-A · 合成来源 A",
+                "excerpt": "合成数据：ALT 参考范围 9–50 U/L，不是正式医学标准。",
+                "url": "#source-DEMO-ALT-A",
             },
             {
                 "id": "标准来源B",
-                "source_id": "SRC-RANGE-B",
-                "title": "WS/T 405 参考区间 · v2（演示）",
-                "excerpt": "ALT 参考范围：9-50 U/L",
-                "url": "#source-SRC-RANGE-B",
+                "source_id": "DEMO-ALT-B",
+                "title": "DEMO-ALT-B · 合成来源 B",
+                "excerpt": "合成数据：ALT 参考范围 7–40 U/L，不是正式医学标准。",
+                "url": "#source-DEMO-ALT-B",
             },
         ])
 
     extraction_confidence = float(parsed["metadata"].get("extraction_confidence", 0.0))
-    missing_patient_fields = [
-        field for field, value in parsed["patient_info"].items()
-        if value is None or value == "未知"
-    ]
+    missing_gender = parsed["patient_info"].get("gender") in (None, "", "未知")
+    missing_gender = missing_gender and any(
+        entry.get("result", {}).get("clarification", {}).get("field") == "gender"
+        for entry in mcp_tools.get("evidence_gates", [])
+    )
     if conflict_case:
         decision_gate = "review"
         evidence_status = "conflict"
@@ -415,15 +445,19 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
         decision_gate = "abstain"
         evidence_status = "missing"
         next_action = "补充可识别的检验指标和参考范围"
-    elif extraction_confidence < 0.8 or missing_patient_fields:
+    elif missing_gender:
+        decision_gate = "review"
+        evidence_status = "missing_info"
+        next_action = "该指标区分男女，请补充性别后重新解读"
+    elif extraction_confidence < 0.8:
         # 报告级编排允许追问一个字段，因此“低置信度/缺性别”进入 review；
         # 只有没有任何指标或没有参考依据时才 abstain。
         decision_gate = "review"
-        evidence_status = "low_confidence" if extraction_confidence < 0.8 else "missing"
+        evidence_status = "low_confidence"
         next_action = "补充患者信息并人工核对抽取字段"
     else:
         decision_gate = "pass"
-        evidence_status = "consistent"
+        evidence_status = "found"
         next_action = "证据一致，可继续展示带来源结果"
 
     high = [item for item in items if item["status"] == "high"]
@@ -479,11 +513,11 @@ def analyze_payload(payload: dict[str, Any], csv_path: str = DEFAULT_CSV) -> dic
     medications_list = parsed["medications"]
     warnings = []
     clarification = None
-    if decision_gate == "review" and (parsed["patient_info"].get("gender") in (None, "未知") or extraction_confidence < 0.8):
+    if decision_gate == "review" and evidence_status in {"missing_info", "low_confidence"}:
         clarification = {
             "required": True,
-            "field": "gender" if parsed["patient_info"].get("gender") in (None, "未知") else "extraction_confidence",
-            "prompt": "请补充患者性别，以便准确选择参考区间。" if parsed["patient_info"].get("gender") in (None, "未知") else "请核对图片或文本中的指标数值。",
+            "field": "gender" if evidence_status == "missing_info" else "extraction_confidence",
+            "prompt": "请补充患者性别，以便准确选择参考区间。" if evidence_status == "missing_info" else "请核对图片或文本中的指标数值。",
         }
 
     interaction = {"status": "pass", "warnings": [], "checked_medications": [], "checked_indicators": []}

@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v='20261120-stage2-v12') }}" />
+    <link rel="icon" type="image/svg+xml" href="static/favicon.svg" />
+    <meta name="medtrace-release" content="20261122-gate-ui" />
+    <link rel="stylesheet" href="static/app.css?v=20261122-gate-ui" />
+    <link rel="stylesheet" href="static/gate-ui.css?v=20261122-gate-ui" />
   </head>
   <body>
     <div class="app-frame">
@@ -64,9 +67,20 @@
             <input id="reportFile" type="file" accept=".png,.jpg,.jpeg,.pdf" />
             <span class="upload-icon">＋</span>
             <span class="upload-title">上传检验单图片或 PDF</span>
-            <span class="upload-help">当前为前端占位，上传后载入对应合成样例</span>
+            <span class="upload-help">图片识别演示请选下方样本；任意文件 OCR 待接入</span>
             <span class="file-name" id="fileName">也可以直接粘贴下方报告文本</span>
           </label>
+          <div class="asset-picker" aria-label="脱敏实测样本">
+            <div class="asset-picker-heading"><span>脱敏实测样本</span><small>仅用于演示，不上传原始患者信息</small></div>
+            <div class="asset-picker-buttons">
+              <button type="button" class="asset-button" data-asset="coagulation">图1 · 凝血四项</button>
+              <button type="button" class="asset-button" data-asset="glucose-crp">图2 · 葡萄糖 + CRP</button>
+              <button type="button" class="asset-button" data-asset="mobile">图3 · 手机长图</button>
+              <button type="button" class="asset-button" data-asset="urine">图4 · 尿蛋白</button>
+              <button type="button" class="asset-button" data-asset="liver">图5 · 肝肾系列</button>
+            </div>
+            <div class="asset-preview hidden" id="assetPreview"><img id="assetPreviewImage" alt="脱敏检验单预览" /><span id="assetPreviewLabel"></span></div>
+          </div>
           <label for="rawText">报告文本</label>
           <textarea id="rawText" name="raw_text" rows="13">合成检验单 R001
 ALT 68 IU/L（参考范围 0—40）
@@ -76,7 +90,9 @@ AST 35 U/L（参考范围 0—40）
 空腹血糖 5.4 mmol/L（参考范围 3.9—6.1）</textarea>
           <label for="currentMedications">当前用药 <span class="optional-label">可选</span></label>
           <textarea id="currentMedications" name="current_medications" rows="2" placeholder="例如：阿托伐他汀 10 mg，每晚一次（仅作演示输入）"></textarea>
-          <div class="sample-row"><span>快速开始</span><div class="sample-buttons"><button type="button" class="sample-button active" data-report="R001">R001</button><button type="button" class="sample-button" data-report="R002">R002</button><button type="button" class="sample-button" data-report="R003">R003</button><button type="button" class="sample-button" data-report="R004">字段规范</button><button type="button" class="sample-button" data-report="R005">冲突复核</button><button type="button" class="sample-button" data-report="R012">V2 ALT 200</button><button type="button" class="text-button" id="clearInput">清空</button></div></div>
+          <label for="patientGender">患者性别 <span class="optional-label">缺失时可追问</span></label>
+          <select id="patientGender" name="patient_gender"><option value="">未知 / 未提供</option><option value="男">男</option><option value="女">女</option></select>
+          <div class="sample-row"><span>快速开始</span><div class="sample-buttons"><button type="button" class="sample-button active" data-report="R001">R001</button><button type="button" class="sample-button" data-report="R002">R002</button><button type="button" class="sample-button" data-report="R003">R003</button><button type="button" class="sample-button" data-report="R004">字段规范</button><button type="button" class="sample-button" data-report="R005">冲突复核</button><button type="button" class="sample-button" data-report="R006">证据不足</button><button type="button" class="sample-button" data-report="R012">V2 ALT 200</button><button type="button" class="text-button" id="clearInput">清空</button></div></div>
           <button type="submit" class="primary-button" id="submitButton"><span class="button-label">生成带来源解读</span></button>
           <p class="helper">默认载入 R001 合成报告，点击按钮即可查看端到端展示。</p>
         </form>
@@ -89,10 +105,27 @@ AST 35 U/L（参考范围 0—40）
             </div>
             <div class="output-meta"><span class="request-id" id="requestId">尚未生成</span><span class="model-meta hidden" id="modelMeta"></span></div>
           </div>
+          <div class="gate-demo-picker" id="gateDemoPicker" aria-label="门控状态演示">
+            <div class="gate-demo-heading"><strong>试试四种门控状态</strong><span>合成数据 · 点击即演示</span></div>
+            <div class="gate-demo-buttons">
+              <button type="button" data-gate-demo="R012" aria-pressed="false"><i class="state-dot pass"></i>正常通过</button>
+              <button type="button" data-gate-demo="R005" aria-pressed="false"><i class="state-dot review"></i>证据冲突</button>
+              <button type="button" data-gate-demo="R013" aria-pressed="false"><i class="state-dot review"></i>缺少信息</button>
+              <button type="button" data-gate-demo="R006" aria-pressed="false"><i class="state-dot abstain"></i>查无此项</button>
+            </div>
+          </div>
           <div id="loadingState" class="loading-state hidden"><span class="spinner"></span><div><strong>正在检索并整理</strong><span>Agent 正在读取报告、核对参考范围并准备来源引用…</span><div class="agent-timeline" id="agentTimeline"><span class="agent-step pending" data-agent-step="parse_report">抽取</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="normalize">标准化</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="query_reference">检索</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="check_interaction">核查</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="summarize">汇总</span></div></div></div>
           <div id="emptyState" class="empty-state"><div class="empty-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 23V9m0 0-5 5m5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 25h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><strong>等待一份检验报告</strong><span>提交左侧合成报告后，这里会显示解读摘要、指标状态和可点击来源。</span></div>
           <div id="errorBanner" class="error-banner hidden" role="alert"></div>
           <div id="resultPanel" class="hidden">
+            <div class="decision-gate hidden" id="decisionGate">
+              <div class="decision-gate-heading"><span class="section-label">AI 决策门控</span><span class="gate-badge" id="gateBadge"></span></div>
+              <div class="gate-title-row"><span class="gate-symbol" id="gateSymbol" aria-hidden="true"></span><h3 id="gateTitle"></h3></div>
+              <p class="gate-action" id="gateAction"></p>
+              <div class="gate-conflicts" id="gateConflicts"></div>
+              <div class="clarification-box hidden" id="clarificationBox"><span class="clarification-dot"></span><span id="clarificationPrompt"></span><button type="button" class="text-button" id="applyGender">补充性别</button></div>
+            </div>
+            <div data-gate-content>
             <p class="answer" id="answer"></p>
             <div class="answer-citations" id="answerCitations"></div>
             <div class="schema-summary hidden" id="schemaSummary">
@@ -100,11 +133,6 @@ AST 35 U/L（参考范围 0—40）
               <div class="patient-fields" id="patientFields"></div>
               <div class="medications-summary"><span class="summary-caption">当前用药</span><div class="medication-tags" id="medicationsSummary"></div></div>
               <div class="confidence-alert hidden" id="confidenceAlert" role="alert"></div>
-            </div>
-            <div class="decision-gate hidden" id="decisionGate">
-              <div class="decision-gate-heading"><span class="section-label">证据决策门控</span><span class="gate-badge" id="gateBadge"></span></div>
-              <p class="gate-action" id="gateAction"></p>
-              <div class="gate-conflicts" id="gateConflicts"></div>
             </div>
             <details class="normalization-block compact-details hidden" id="normalizationBlock">
               <summary class="section-heading-row"><span class="section-label">单位标准化</span><span class="evidence-tag">可审计换算</span></summary>
@@ -128,13 +156,14 @@ AST 35 U/L（参考范围 0—40）
               <div class="details-content"><div class="evidence-grid"><pre id="rawJsonEvidence"></pre><div><p class="evidence-note" id="evidenceNote"></p><ul id="checkedFields" class="checked-fields"></ul></div></div></div>
             </details>
             <button type="button" class="graph-button" id="openGraph">探索 AI 知识关联网络（多跳推理图谱）<span>→</span></button>
-            <details class="trace-block compact-details">
-              <summary class="section-heading-row"><span class="section-label">调用链</span><span class="evidence-tag">Agent Trace</span></summary>
-              <div class="details-content"><ol id="trace" class="trace-list"></ol></div>
-            </details>
             <details class="sources-block compact-details">
               <summary class="section-heading-row"><span class="section-label">引用来源</span><span class="evidence-tag">可点击溯源</span></summary>
               <div class="details-content"><div id="sources"></div></div>
+            </details>
+            </div>
+            <details class="trace-block compact-details" id="auditPanel">
+              <summary class="section-heading-row"><span class="section-label">查看AI决策审计轨迹</span><span class="evidence-tag" id="auditMode">判定记录</span></summary>
+              <div class="details-content"><ol id="trace" class="audit-timeline"></ol></div>
             </details>
             <p class="disclaimer" id="disclaimer"></p>
           </div>
@@ -150,8 +179,21 @@ AST 35 U/L（参考范围 0—40）
         <svg class="graph-svg" id="graphSvg" viewBox="0 0 720 270" role="img" aria-label="知识关联网络示意图"></svg>
       </div>
     </div>
-    <script src="{{ url_for('static', filename='app.js', v='20261120-stage2-v12') }}"></script>
+    <dialog class="gender-dialog" id="genderDialog" aria-labelledby="genderDialogTitle" aria-describedby="genderDialogDescription">
+      <form id="genderDialogForm">
+        <div class="dialog-heading"><span class="dialog-eyebrow">补充关键信息</span><button type="button" id="closeGenderDialog" class="dialog-close" aria-label="关闭性别补充弹窗">×</button></div>
+        <h2 id="genderDialogTitle">这项指标区分男女</h2>
+        <p id="genderDialogDescription">请补充患者性别后重新解读。系统会保留本次报告内容。</p>
+        <label for="clarificationGender">患者性别</label>
+        <select id="clarificationGender" required><option value="">请选择性别</option><option value="男">男</option><option value="女">女</option></select>
+        <div class="dialog-actions"><button type="button" id="deferGender" class="dialog-secondary">稍后补充</button><button type="submit" class="dialog-primary">提交并重新解读</button></div>
+      </form>
+    </dialog>
+    <script id="medtraceConfig">window.MEDTRACE_CONFIG = { mode: "api" };</script>
+    <script src="static/demo-results.js?v=20261122-gate-ui"></script>
+    <script src="static/gate-fixtures.js?v=20261122-gate-ui"></script>
+    <script src="static/stage2-demo.js?v=20261122-gate-ui"></script>
+    <script src="static/app.js?v=20261122-gate-ui"></script>
+    <script src="static/gate-ui.js?v=20261122-gate-ui"></script>
   </body>
 </html>
-
-

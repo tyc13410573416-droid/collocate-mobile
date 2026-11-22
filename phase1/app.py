@@ -23,7 +23,8 @@ from analysis_engine import analyze_payload, _get_mcp_server
 from phase2.nexent_client import NexentClient, NexentClientError
 
 
-app = Flask(__name__)
+# Local Flask and GitHub Pages use the same UI assets to prevent version drift.
+app = Flask(__name__, static_folder=os.path.join(ROOT_DIR, "docs", "static"))
 MOCK_NEXENT_URL = os.environ.get("MOCK_NEXENT_URL", "http://127.0.0.1:5051/v1/analyze")
 APP_MODE = os.environ.get("APP_MODE", "demo").lower()
 NEXENT_API_URL = os.environ.get("NEXENT_API_URL", MOCK_NEXENT_URL)

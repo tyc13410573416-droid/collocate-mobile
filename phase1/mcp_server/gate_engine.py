@@ -147,7 +147,7 @@ def evaluate(indicator, value, gender=None, age=None, references=None) -> dict:
             return {
                 "decision_gate": "review",
                 "confidence": confidence,
-                "evidence_status": "missing",
+                "evidence_status": "missing_info",
                 "conflicts": [],
                 "next_action": "该指标参考区间区分男女，请补充性别后重新解读",
                 "clarification": {"field": "gender", "prompt": "请提供患者性别，以便准确选择参考区间"},

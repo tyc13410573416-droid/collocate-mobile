@@ -44,9 +44,10 @@ const sampleTexts = {
   R002: `合成检验单 R002\nALT 32 U/L（参考范围 0—40）\nAST 45 IU/L（参考范围 0—40）\n血红蛋白 132 g/L（参考范围 120—160）\n白细胞 3.7 10^9/L（参考范围 4—10）\n空腹血糖 6.4 mmol/L（参考范围 3.9—6.1）`,
   R003: `合成检验单 R003\nALT 40 U/L（参考范围 0—40）\nAST 38 U/L（参考范围 0—40）\n血红蛋白 145 g/L（参考范围 120—160）\n白细胞 7.1 10^9/L（参考范围 4—10）\n空腹血糖 4.8 mmol/L（参考范围 3.9—6.1）`,
   R004: `患者男，45岁。今日查血化验结果显示：丙氨酸氨基转移酶（ALT）为 68 U/L，参考范围是 9-50 U/L；天门冬氨酸氨基转移酶（AST）为 35 U/L，参考范围是 15-40 U/L。患者自述目前正在规律服用阿托伐他汀钙片。`,
-  R005: `患者女，52岁。来源冲突测试：丙氨酸氨基转移酶（ALT）为 68 U/L，参考范围是 9-50 U/L。知识库中两份演示标准对该指标参考范围存在冲突。患者目前未提供用药信息。`,
+  R005: `合成数据：患者男，45岁。来源冲突测试：丙氨酸氨基转移酶（ALT）为 45 U/L，参考范围是 9-50 U/L。演示来源 A 为 9-50 U/L，演示来源 B 为 7-40 U/L。`,
   R006: `合成检验单 R006：未提供可识别的检验指标和检测数值。`,
   R012: `患者男，45岁。谷丙转氨酶（ALT）为 200 U/L，参考范围是 9-50 U/L。`,
+  R013: `合成数据：患者45岁。丙氨酸氨基转移酶（ALT）为 68 U/L，参考范围是 9-50 U/L。`,
 };
 const sampleMedications = {
   R001: "阿托伐他汀 10 mg（合成演示用药）",
@@ -67,7 +68,7 @@ function statusLabel(status) {
 }
 
 function traceStatusLabel(status) {
-  return ({ done: "完成", success: "完成", running: "运行中", failed: "失败", error: "失败" })[status] || status || "完成";
+  return ({ done: "完成", success: "完成", ok: "完成", pass: "通过", review: "需复核", abstain: "停止输出", running: "运行中", failed: "失败", error: "失败" })[status] || status || "完成";
 }
 
 function selectAsset(assetId) {
@@ -98,7 +99,7 @@ function loadSample(reportId) {
   reportIdInput.value = id;
   rawTextInput.value = sampleTexts[id];
   medicationsInput.value = sampleMedications[id] || "";
-  if (genderInput) genderInput.value = id === "R004" ? "男" : "";
+  if (genderInput) genderInput.value = ["R004", "R005", "R012"].includes(id) ? "男" : "";
   resizeInputTextareas();
   selectedAsset = "";
   assetPreview?.classList.add("hidden");
@@ -119,8 +120,8 @@ document.getElementById("quickText")?.addEventListener("click", () => {
   rawTextInput?.focus();
 });
 document.getElementById("quickCase")?.addEventListener("click", () => {
-  loadSample("R004");
-  rawTextInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+  loadSample("R012");
+  form.requestSubmit();
 });
 
 document.getElementById("clearInput")?.addEventListener("click", () => {
@@ -146,10 +147,16 @@ fileInput?.addEventListener("change", () => {
     fileName.textContent = `${file.name} · 已载入脱敏图片样本`;
     return;
   }
-  const match = file.name.match(/R00[1-9]/i);
-  const reportId = match ? match[0].toUpperCase() : "R001";
-  loadSample(reportId);
-  fileName.textContent = `${file.name} · 已载入演示文本`;
+  fileName.textContent = `${file.name} · 尚未接入真实 OCR，请选择下方样本或粘贴报告文本`;
+  fileInput.value = "";
+  reportIdInput.value = "";
+  rawTextInput.value = "";
+  medicationsInput.value = "";
+  resizeInputTextareas();
+  selectedAsset = "";
+  assetPreview?.classList.add("hidden");
+  resultPanel.classList.add("hidden");
+  emptyState.classList.remove("hidden");
 });
 
 ["dragenter", "dragover"].forEach((eventName) => dropZone?.addEventListener(eventName, (event) => {
@@ -172,7 +179,7 @@ dropZone?.addEventListener("drop", (event) => {
 });
 resizeInputTextareas();
 
-function renderResult(result) {
+function renderReportDetails(result) {
   emptyState.classList.add("hidden");
   loadingState.classList.add("hidden");
   errorBanner.classList.add("hidden");
@@ -414,14 +421,18 @@ function renderResult(result) {
 
   const trace = document.getElementById("trace");
   trace.replaceChildren();
-  const traceSteps = result.trace_log || result.trace || [];
+  const traceSteps = result.audit_trace || result.trace_log || result.trace || [];
   traceSteps.forEach((step) => {
     const li = document.createElement("li");
     if (typeof step === "object" && step !== null) {
-      const tool = step.tool || step.name || "工具调用";
+      const tool = step.title || step.step || step.tool || step.name || "工具调用";
       const status = step.status || "done";
       const elapsed = step.elapsed_ms == null ? "" : ` · ${step.elapsed_ms} ms`;
-      li.textContent = `${tool} · ${traceStatusLabel(status)}${elapsed}`;
+      const title = document.createElement("strong");
+      title.textContent = `${tool} · ${traceStatusLabel(status)}${elapsed}`;
+      const detail = document.createElement("span");
+      detail.textContent = step.detail || "";
+      li.append(title, detail);
     } else {
       li.textContent = step;
     }
@@ -451,17 +462,22 @@ function renderResult(result) {
     anchor.href = `#source-${escapeText(citation.source_id)}`;
     anchor.textContent = citation.id || "来源";
     const label = document.createElement("span");
-    label.textContent = citation.title || "合成样本";
+    label.textContent = citation.title || citation.source_id || "来源依据";
     title.append(anchor, label);
     const excerpt = document.createElement("p");
     excerpt.className = "source-excerpt";
-    excerpt.textContent = citation.excerpt || "";
+    const range = citation.range_display || citation.reference_range;
+    const position = { above: "高于区间", below: "低于区间", within: "区间内" }[citation.value_position];
+    excerpt.textContent = citation.excerpt || [range && `参考范围：${range} ${citation.unit || ""}`, citation.version && `版本：${citation.version}`, position].filter(Boolean).join(" · ");
     card.append(title, excerpt);
     sources.append(card);
   });
 }
 
+let timelineTimers = [];
 function resetAgentTimeline() {
+  timelineTimers.forEach(clearTimeout);
+  timelineTimers = [];
   agentTimeline?.querySelectorAll(".agent-step").forEach((step) => step.classList.remove("active", "done"));
 }
 
@@ -469,11 +485,11 @@ function animateAgentTimeline() {
   resetAgentTimeline();
   const steps = Array.from(agentTimeline?.querySelectorAll(".agent-step") || []);
   steps.forEach((step, index) => {
-    setTimeout(() => {
+    timelineTimers.push(setTimeout(() => {
       step.classList.add("active");
       if (index > 0) steps[index - 1].classList.remove("active");
       if (index > 0) steps[index - 1].classList.add("done");
-    }, index * 650);
+    }, index * 650));
   });
 }
 
@@ -522,40 +538,33 @@ document.querySelectorAll('a[href="#openGraph"]').forEach((link) => {
   link.addEventListener("click", () => setTimeout(() => document.getElementById("openGraph")?.click(), 0));
 });
 
-document.getElementById("applyGender")?.addEventListener("click", () => {
-  if (!genderInput?.value) {
-    genderInput?.focus();
-    return;
-  }
-  form.requestSubmit();
-});
-
 async function requestAnalysis(payload) {
+  if (window.MEDTRACE_CONFIG?.mode === "demo") {
+    return window.MEDTRACE_DEMO.analyze(payload);
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
   try {
     const response = await fetch("/api/analyze", {
-      method: "POST",
+      method: "POST", signal: controller.signal,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}));
-      throw new Error(errorBody.error || `HTTP ${response.status}`);
-    }
-    return await response.json();
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
+    return body;
   } catch (error) {
-    const staticResults = window.MEDTRACE_STATIC_RESULTS || {};
-    const staticResult = staticResults[payload.report_id];
-    if (staticResult) {
-      return { ...staticResult, transport: "github-pages-demo" };
-    }
+    if (error.name === "AbortError") throw new Error("请求超时，请重试。原始输入已保留。");
     throw error;
-  }
+  } finally { clearTimeout(timeout); }
 }
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (submitButton.disabled) return;
   submitButton.disabled = true;
-  submitButton.querySelector(".button-label").innerHTML = '<span class="button-spinner"></span>正在联调…';
+  setGateBusy(true);
+  submitButton.querySelector(".button-label").innerHTML = '<span class="button-spinner"></span>正在解读…';
   transportStatus.textContent = "请求处理中";
   transportStatus.className = "status-pill busy";
   resultPanel.classList.add("hidden");
@@ -564,6 +573,7 @@ form.addEventListener("submit", async (event) => {
   loadingState.classList.remove("hidden");
   animateAgentTimeline();
   try {
+    const startedAt = performance.now();
     const result = await requestAnalysis({
       report_id: reportIdInput.value.trim(),
       raw_text: rawTextInput.value,
@@ -572,7 +582,9 @@ form.addEventListener("submit", async (event) => {
       asset_id: selectedAsset,
       options: { include_trace: true, include_retrieval: true, include_graph: true },
     });
+    await new Promise((resolve) => setTimeout(resolve, Math.max(0, 650 - (performance.now() - startedAt))));
     renderResult(result);
+    resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
     transportStatus.textContent = result.transport === "nexent-http" ? "Nexent API 已联通" : (result.transport === "mock-nexent-http" ? "Mock API 已联通" : (result.transport === "github-pages-demo" ? "GitHub Pages 演示模式" : "本地演示模式"));
     transportStatus.className = "status-pill ready";
   } catch (error) {
@@ -584,7 +596,9 @@ form.addEventListener("submit", async (event) => {
     transportStatus.textContent = `请求失败：${error.message}`;
     transportStatus.className = "status-pill";
   } finally {
+    resetAgentTimeline();
     submitButton.disabled = false;
+    setGateBusy(false);
     submitButton.querySelector(".button-label").textContent = "生成带来源解读";
   }
 });

@@ -14,6 +14,8 @@ import server  # noqa: 触发 server 模块加载（构建索引）
 def check(name, cond, detail=""):
     mark = "PASS" if cond else "FAIL"
     print(f"[{mark}] {name} {detail}")
+    if not cond:
+        raise AssertionError(name)
     return cond
 
 
