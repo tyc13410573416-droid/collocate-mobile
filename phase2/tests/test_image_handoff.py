@@ -109,6 +109,22 @@ class FakeNexentCase(unittest.TestCase):
 
 
 class ImageHandoffTest(FakeNexentCase):
+    def test_team_uploads_get_busy_message_and_disconnect_releases_slot(self):
+        first = self.post(buffered=False)
+        try:
+            second = self.post()
+            self.assertEqual(second.status_code, 429)
+            self.assertEqual(second.get_json()["error_code"], "IMAGE_SERVICE_BUSY")
+        finally:
+            first.close()
+        self.assertEqual(self.events(self.post())[-1]["type"], "result")
+
+    def test_failed_identification_releases_shared_cpu_slot(self):
+        self.server.state["events"] = [{"type":"error","content":"test upstream failure"}]
+        self.assertEqual(self.events(self.post())[-1]["type"], "error")
+        self.server.state["events"] = [{"type":"final_answer","content":json.dumps(result())}]
+        self.assertEqual(self.events(self.post())[-1]["type"], "result")
+
     def test_transfers_bytes_and_returned_attachment_with_context(self):
         # A demo-like filename must still send real bytes; no fixture/MCP shortcut.
         with patch("phase1.app.analyze_payload", side_effect=AssertionError("no image fallback")):

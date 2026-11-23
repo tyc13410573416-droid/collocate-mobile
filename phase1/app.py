@@ -6,6 +6,7 @@ import os
 import sys
 import hashlib
 import json
+import threading
 from datetime import datetime, timezone
 
 import requests
@@ -31,6 +32,7 @@ MOCK_NEXENT_URL = os.environ.get("MOCK_NEXENT_URL", "http://127.0.0.1:5051/v1/an
 APP_MODE = os.environ.get("APP_MODE", "demo").lower()
 NEXENT_API_URL = os.environ.get("NEXENT_API_URL", MOCK_NEXENT_URL)
 NEXENT_CLIENT = NexentClient(endpoint=NEXENT_API_URL)
+IMAGE_SLOT = threading.BoundedSemaphore(1)
 app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_BYTES + 64 * 1024
 ACCESS_LOG_PATH = os.path.join(os.path.dirname(__file__), "logs", "access.jsonl")
 os.makedirs(os.path.dirname(ACCESS_LOG_PATH), exist_ok=True)
@@ -131,15 +133,32 @@ def analyze_image():
     except ImageHandoffError as exc:
         return jsonify({"error": str(exc), "error_code": exc.code}), exc.status
 
+    # One CPU model is installed. Tell the next teammate to retry rather than
+    # starting a competing inference that the local platform cannot serve.
+    if not IMAGE_SLOT.acquire(blocking=False):
+        return jsonify({"error": "另一份图片正在识别，请约 30 秒后再试。", "error_code": "IMAGE_SERVICE_BUSY"}), 429
+    released = False
+    release_guard = threading.Lock()
+    def release_slot():
+        nonlocal released
+        with release_guard:
+            if not released:
+                released = True
+                IMAGE_SLOT.release()
+
     def stream():
         try:
             for event in client.events(content, mime, extension, context):
                 yield json.dumps(event, ensure_ascii=False) + "\n"
         except ImageHandoffError as exc:
             yield json.dumps({"type": "error", "error": str(exc), "error_code": exc.code}, ensure_ascii=False) + "\n"
+        finally:
+            release_slot()
 
-    return Response(stream_with_context(stream()), content_type="application/x-ndjson; charset=utf-8",
-                    headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"})
+    response = Response(stream_with_context(stream()), content_type="application/x-ndjson; charset=utf-8",
+                        headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"})
+    response.call_on_close(release_slot)
+    return response
 
 
 @app.route("/api/tools/query_reference", methods=["POST"])
