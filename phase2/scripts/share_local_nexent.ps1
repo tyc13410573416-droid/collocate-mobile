@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'sharing_common.ps1')
 $DeploymentRoot = 'E:\MedTraceNexent'
 $StatePath = Join-Path $DeploymentRoot 'status\sharing.json'
+$TeamUrl = 'https://tyc13410573416-droid.github.io/collocate-mobile/'
 $TunnelTool = Join-Path $DeploymentRoot 'installers\cloudflared.exe'
 $StopMarker = Join-Path $DeploymentRoot 'status\sharing.stop'
 if (-not $SkipMonitor -and (Test-Path -LiteralPath $StopMarker)) { Remove-Item -LiteralPath $StopMarker }
@@ -12,6 +13,7 @@ if (Test-Path -LiteralPath $StatePath) {
     $Previous = Get-Content -LiteralPath $StatePath -Raw | ConvertFrom-Json
     $Existing = Get-CimInstance Win32_Process -Filter "ProcessId = $($Previous.pid)" -ErrorAction SilentlyContinue
     if ($Existing -and $Existing.ExecutablePath -eq $TunnelTool -and $Existing.CommandLine -match '127.0.0.1:5052') {
+        $TeamUrl | Set-Content -LiteralPath (Join-Path $DeploymentRoot 'team-url.txt') -Encoding UTF8
         Publish-SharingAddress
         if (-not $SkipMonitor) { Start-SharingMonitor }
         Write-Host 'Fixed team URL: https://tyc13410573416-droid.github.io/collocate-mobile/'
@@ -59,7 +61,7 @@ if (-not $PublicUrl) {
 if ($LASTEXITCODE -ne 0) { throw 'Could not configure the verified team URL.' }
 & wsl.exe -d MedTraceNexent -u root -- systemctl restart medtrace-api
 if ($LASTEXITCODE -ne 0) { throw 'Could not reload the image backend.' }
-$PublicUrl | Set-Content -LiteralPath (Join-Path $DeploymentRoot 'team-url.txt') -Encoding UTF8
+$TeamUrl | Set-Content -LiteralPath (Join-Path $DeploymentRoot 'team-url.txt') -Encoding UTF8
 Publish-SharingAddress
 if (-not $SkipMonitor) { Start-SharingMonitor }
 Write-Host 'Fixed team URL: https://tyc13410573416-droid.github.io/collocate-mobile/'
