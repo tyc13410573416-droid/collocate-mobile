@@ -93,3 +93,9 @@ button:focus-visible, summary:focus-visible { outline: 3px solid #0067d94d; outl
 .asset-preview.selected-file-preview { grid-template-columns: 1fr; gap: 8px; }
 .asset-preview.selected-file-preview img { width: 100%; height: auto; max-height: 320px; object-fit: contain; background: #f5f7fa; }
 .asset-preview a { color: #0067d9; text-decoration: underline; }
+.image-service-settings { padding: 16px 0; border-top: 1px solid #e1e4e8; }
+.image-service-settings p, .image-reading-note { color: #586069; font-size: 13px; line-height: 1.6; }
+.image-service-settings input { width: 100%; box-sizing: border-box; }
+.image-service-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding-top: 12px; }
+.image-service-actions a { color: #0067d9; font-size: 13px; }
+.image-transcript { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 14px; line-height: 1.7; color: #1b1f24; }

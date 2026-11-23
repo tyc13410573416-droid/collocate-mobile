@@ -19,7 +19,9 @@ python app.py
 
 ## 图片上传（2026-11-23）
 
-已准备真实文件预览、multipart 上传代理、Nexent v1.8 附件与 Agent SSE 适配，以及失败不回退假数据的处理。传输测试使用本地模拟服务，**真实 OCR 尚未接通**：队友反馈镜像源损坏，当前没有可用服务地址与 Agent ID。Pages 上的图1–图5是预置数据演示，自行上传的文件不会按名称套用样例结果。
+已实现真实文件预览、multipart 上传代理、Nexent v2.8.1 原生 `analyze_image` 视觉模型链路及分段结果接收，失败不回退假数据。网页可在“关于本演示”保存团队后端地址，并展示图片原始转录供核对。此路径不依赖 Unstructured OCR 或重建 data-process 镜像。
+
+**真实图片理解尚未接通**：当前没有可用的服务地址、Agent ID 或视觉模型配置，传输测试使用本地模拟服务。Pages 的图1–图5仍是预置数据演示，自行上传文件不会按名称套用样例结果。队友接入包可在网页下载，具体步骤见 [开始这里](phase2/nexent_vision/开始这里.md)。
 
 恢复服务后的配置、版本核对、免费共享网页接法与验收见 [图片上传接入与联调](phase2/图片上传接入与联调.md)，服务端变量见 `.env.example`。
 
@@ -61,6 +63,6 @@ python phase1/mcp_server/e2e_test.py
 - `POST /api/tools/normalize`：单位标准化；
 - `POST /api/tools/check_interaction`：用药与异常指标规则核查。
 
-`NEXENT_API_URL` 对应本项目约定的 JSON 文本适配器，不能直接假设它是 Nexent 原生接口。图片链路单独配置 `NEXENT_BASE_URL` 与 `NEXENT_IMAGE_AGENT_ID`，使用官方 v1.8 协议；恢复服务后还需核对实际部署版本。
+`NEXENT_API_URL` 对应项目 JSON 文本适配器。图片链路配置 `NEXENT_BASE_URL`、`NEXENT_IMAGE_AGENT_ID`，默认官方 v2.8.1 协议；旧 v1.8 需显式选择。还需在 Nexent 发布启用 `analyze_image` 的 Agent 并配置图片理解模型。
 
 在没有 `fastmcp` 的 Python 环境中，端到端脚本会自动执行同一工具链的离线校验；安装 `phase1/mcp_server/requirements.txt` 后可切换到真实 MCP stdio/HTTP 传输。

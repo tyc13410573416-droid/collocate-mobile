@@ -5,6 +5,8 @@ window.MEDTRACE_IMAGES = (() => {
     uploading: "正在上传到识别服务…",
     uploaded: "附件已上传，正在提交给 Agent…",
     agent_submitted: "已交给 Agent，等待图片识别与证据核查…",
+    vision_reading: "图片理解工具正在读取本次检验单…",
+    checking_evidence: "正在核对本次读数的参考依据…",
     complete: "已收到结构化识别结果",
   };
   function endpoint() {
@@ -17,7 +19,7 @@ window.MEDTRACE_IMAGES = (() => {
       return `${base.href.replace(/\/$/, "")}/api/analyze-image`;
     }
     if (config.mode === "api") return "/api/analyze-image";
-    throw new Error("共享页的图片识别服务尚未接通，当前文件仅在本机预览。请等待 Nexent 恢复，或使用下方演示样本。");
+    throw new Error("共享页的图片识别服务尚未接通，当前文件仅在本机预览。可在“关于本演示”填写团队后端地址，或使用演示样本。");
   }
   function validate(file) {
     if (!file.size) throw new Error("文件为空，请重新选择。");

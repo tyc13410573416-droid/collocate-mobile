@@ -1,7 +1,8 @@
-"""Server-only attachment handoff for the verified Nexent v1.8 API.
+"""Server-only attachment handoff for Nexent v2.8.1 vision and legacy v1.8.
 
-Protocol source: ModelEngine-Group/nexent@3ed8134a234c11ba6d3dde7f835f8c9b82ff6a88.
-OCR stays in Nexent. No medical result or OCR text is synthesized here.
+v2.8.1 source: ModelEngine-Group/nexent@30c5168452440dcf66c6785e1f478f9d2b4d3f4d.
+Legacy source: ModelEngine-Group/nexent@3ed8134a234c11ba6d3dde7f835f8c9b82ff6a88.
+The v2.8.1 path uses native analyze_image, not data-process/Unstructured OCR.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from urllib.parse import urlsplit
 import requests
 
 from phase2.nexent_client import NexentClient, NexentClientError
+from phase2.nexent_vision import VisionStream, image_query
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 MAX_STREAM_BYTES = 2 * 1024 * 1024
@@ -87,7 +89,7 @@ def validated_gate(content):
 
 
 class NexentImageClient:
-    def __init__(self, base_url="", agent_id="", token="", profile="v1.8"):
+    def __init__(self, base_url="", agent_id="", token="", profile="v2.8.1"):
         self.base_url = base_url.rstrip("/")
         self.agent_id = str(agent_id)
         self.token = token
@@ -98,19 +100,24 @@ class NexentImageClient:
         return cls(os.environ.get("NEXENT_BASE_URL", ""),
                    os.environ.get("NEXENT_IMAGE_AGENT_ID", ""),
                    os.environ.get("NEXENT_API_KEY", ""),
-                   os.environ.get("NEXENT_IMAGE_PROTOCOL", "v1.8"))
+                   os.environ.get("NEXENT_IMAGE_PROTOCOL", "v2.8.1"))
 
     def check_config(self):
         parsed = urlsplit(self.base_url)
         if not self.base_url or not self.agent_id:
-            raise ImageHandoffError("IMAGE_NOT_CONFIGURED", "图片识别服务尚未接通。文件已保留，请等待 Nexent 恢复后重试，或选择演示样本。", 503)
+            raise ImageHandoffError("IMAGE_NOT_CONFIGURED", "图片识别服务尚未接通。请配置 Nexent 地址、Agent ID 和图片理解模型；文件已保留，也可选择演示样本。", 503)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.query or parsed.fragment or parsed.username or parsed.password:
             raise ImageHandoffError("IMAGE_CONFIG_ERROR", "图片服务地址配置无效，请后端检查配置。", 503)
-        if not self.agent_id.isdigit() or self.profile != "v1.8":
-            raise ImageHandoffError("IMAGE_CONFIG_ERROR", "请后端确认 Agent ID 和 Nexent 协议版本（当前适配 v1.8）。", 503)
+        if not self.agent_id.isdigit() or int(self.agent_id) <= 0 or self.profile not in {"v1.8", "v2.8.1"}:
+            raise ImageHandoffError("IMAGE_CONFIG_ERROR", "请后端确认 Agent ID 和 Nexent 协议版本（支持 v2.8.1 和旧版 v1.8）。", 503)
+
+    def check_file_kind(self, mime):
+        if self.profile == "v2.8.1" and mime == "application/pdf":
+            raise ImageHandoffError("VISION_PDF_UNSUPPORTED", "图片理解通道请上传 JPG、PNG 或 WebP。PDF 请先导出为图片；PDF 预览仍可使用。", 415)
 
     def events(self, content, mime, extension, context):
         self.check_config()
+        self.check_file_kind(mime)
         headers = {}
         if self.token:
             headers["Authorization"] = "Bearer " + self.token
@@ -129,8 +136,15 @@ class NexentImageClient:
                 raise ImageHandoffError("UPLOAD_FAILED", "Nexent 未确认附件上传成功，请检查存储服务。")
             attachment = {"object_name": entries[0]["object_name"], "name": "report" + extension,
                           "type": mime, "size": len(content)}
+            if isinstance(entries[0].get("url"), str) and entries[0]["url"]:
+                attachment["url"] = entries[0]["url"]
             yield {"type": "stage", "stage": "uploaded"}
-            query = (
+            if self.profile == "v2.8.1" and not attachment.get("url"):
+                bucket = os.environ.get("NEXENT_ATTACHMENT_BUCKET", "").strip()
+                if not bucket or any(char in bucket for char in "/\\:?\r\n"):
+                    raise ImageHandoffError("ATTACHMENT_URL_MISSING", "附件已上传，但存储未返回图片地址。请后端配置真实的 NEXENT_ATTACHMENT_BUCKET，不能猜测桶名。")
+                attachment["url"] = "s3://" + bucket + "/" + attachment["object_name"].lstrip("/")
+            query = image_query(attachment, context) if self.profile == "v2.8.1" else (
                 "请识别附件检验单。OCR 与文件解析由 Nexent 平台完成，然后复用 parse_report、"
                 "query_reference、evidence_gate；不要从文件名猜测读数。若无法识别请明确报错。"
                 "最终答案只输出项目约定的 JSON 对象，包含 answer、lab_results、decision_gate、"
@@ -151,6 +165,7 @@ class NexentImageClient:
                 yield {"type": "stage", "stage": "agent_submitted"}
                 response.encoding = "utf-8"
                 data_lines, received = [], 0
+                vision = VisionStream(attachment, validated_gate, ImageHandoffError) if self.profile == "v2.8.1" else None
                 # SSE is framed by blank lines; support multi-line data and comments.
                 for line in response.iter_lines(chunk_size=1024, decode_unicode=True):
                     received += len(line.encode("utf-8")) + 1
@@ -159,17 +174,18 @@ class NexentImageClient:
                     if line.startswith("data:"):
                         data_lines.append(line[5:].lstrip(" "))
                     elif not line and data_lines:
-                        event = self._event("\n".join(data_lines))
+                        events = self._events("\n".join(data_lines), vision)
                         data_lines = []
-                        if event is not None:
+                        for event in events:
                             yield event
-                            return
+                            if event["type"] == "result":
+                                return
                 if data_lines:
-                    event = self._event("\n".join(data_lines))
-                    if event is not None:
+                    for event in self._events("\n".join(data_lines), vision):
                         yield event
-                        return
-                raise ImageHandoffError("AGENT_NO_RESULT", "附件已交给 Agent，但尚未得到结构化识别结果，请检查 Nexent 的图片解析服务。")
+                        if event["type"] == "result":
+                            return
+                raise ImageHandoffError("AGENT_NO_RESULT", "附件已交给 Agent，但未收到完整识别结果，请检查图片理解模型、工具配置和输出协议。")
         except requests.Timeout as exc:
             raise ImageHandoffError("NEXENT_TIMEOUT", "图片服务响应超时，文件已保留，可稍后重试。") from exc
         except requests.RequestException as exc:
@@ -178,16 +194,18 @@ class NexentImageClient:
             raise ImageHandoffError("NEXENT_PROTOCOL_ERROR", "Nexent 返回了无法解析的响应，请后端核对版本与接口。") from exc
 
     @staticmethod
-    def _event(data):
+    def _events(data, vision=None):
         if data == "[DONE]":
-            return None
+            return []
         event = json.loads(data)
         if not isinstance(event, dict):
             raise ImageHandoffError("AGENT_PROTOCOL_ERROR", "Agent 事件格式不正确，请后端核对接口。")
+        if vision is not None:
+            return vision.consume(event)
         if event.get("type") == "error":
             # Never echo upstream errors: they may contain credentials or patient data.
             raise ImageHandoffError("AGENT_FAILED", "Agent 处理失败，请后端检查 OCR、模型或工具服务。")
         if event.get("type") == "final_answer":
-            return {"type": "result", "result": validated_gate(event.get("content"))}
+            return [{"type": "result", "result": validated_gate(event.get("content"))}]
         # Internal model reasoning is not a medical audit trail and is not relayed.
-        return None
+        return []

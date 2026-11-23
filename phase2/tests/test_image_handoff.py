@@ -41,7 +41,7 @@ class FakeNexent(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"results": [{"success": True, "object_name": "attachments/received-file.png"}]}).encode())
+            self.wfile.write(json.dumps({"results": [{"success": True, "object_name": "attachments/received-file.png", "url": "s3://nexent/attachments/received-file.png"}]}).encode())
         elif self.path == "/api/agent/run":
             state["agent_body"] = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             self.send_response(200)
@@ -55,7 +55,7 @@ class FakeNexent(BaseHTTPRequestHandler):
             self.end_headers()
 
 
-class ImageHandoffTest(unittest.TestCase):
+class FakeNexentCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.server = HTTPServer(("127.0.0.1", 0), FakeNexent)
@@ -84,6 +84,8 @@ class ImageHandoffTest(unittest.TestCase):
     def events(self, response):
         return [json.loads(line) for line in response.get_data(as_text=True).splitlines()]
 
+
+class ImageHandoffTest(FakeNexentCase):
     def test_transfers_bytes_and_returned_attachment_with_context(self):
         # A demo-like filename must still send real bytes; no fixture/MCP shortcut.
         with patch("phase1.app.analyze_payload", side_effect=AssertionError("no image fallback")):
@@ -169,6 +171,97 @@ class ImageHandoffTest(unittest.TestCase):
             payload = copy.deepcopy(result())
             payload.update(decision_gate=gate, evidence_status=status)
             self.assertEqual(validated_gate(payload)["decision_gate"], gate)
+
+
+def image_result():
+    data = result()
+    data["image_transcription"] = {"raw_text": "ALT 123.45 U/L，原单参考范围 9-50 U/L", "readable": True, "uncertain_fields": []}
+    return data
+
+
+def vision_call(url="s3://nexent/attachments/received-file.png"):
+    return {"type": "tool", "tool_name": "analyze_image", "tool_arguments": {"image_urls_list": [url], "query": "逐行转录"}, "tool_call_id": "test-vision-call"}
+
+
+class NativeVisionTest(FakeNexentCase):
+    def setUp(self):
+        super().setUp()
+        os.environ["NEXENT_IMAGE_PROTOCOL"] = "v2.8.1"
+        self.server.state["events"] = [vision_call(), {"type": "final_answer", "content": json.dumps(image_result()), "answer_phase": "complete"}]
+
+    def test_native_tool_and_complete_transcript(self):
+        events = self.events(self.post())
+        self.assertEqual(events[-1]["type"], "result")
+        data = events[-1]["result"]
+        self.assertTrue(data["metadata"]["vision_tool_observed"])
+        self.assertEqual(data["image_transcription"]["raw_text"], image_result()["image_transcription"]["raw_text"])
+        self.assertIn({"type": "stage", "stage": "vision_reading"}, events)
+        body = self.server.state["agent_body"]
+        self.assertEqual(body["minio_files"][0]["url"], "s3://nexent/attachments/received-file.png")
+        self.assertIn("必须先使用 analyze_image", body["query"])
+        self.assertIn("用户补充", body["query"])
+
+    def test_unicode_deltas_wait_for_complete(self):
+        text = json.dumps(image_result(), ensure_ascii=False)
+        self.server.state["events"] = [vision_call()] + [
+            {"type": "final_answer", "content": text[index:index + 13], "answer_phase": "delta", "step_id": "root-step", "attempt_id": "good-attempt"}
+            for index in range(0, len(text), 13)
+        ] + [{"type": "final_answer", "content": "", "answer_phase": "complete", "step_id": "root-step", "attempt_id": "good-attempt"}]
+        events = self.events(self.post())
+        self.assertEqual(events[-1]["result"]["lab_results"][0]["value"], 123.45)
+        self.assertEqual(sum(event["type"] == "result" for event in events), 1)
+
+    def test_incomplete_deltas_are_not_a_result(self):
+        self.server.state["events"] = [vision_call(), {"type": "final_answer", "content": '{"answer":', "answer_phase": "delta"}]
+        self.assertEqual(self.events(self.post())[-1]["error_code"], "AGENT_NO_RESULT")
+
+    def test_subagent_answer_cannot_finish_root(self):
+        child = image_result()
+        child["lab_results"][0]["value"] = 999
+        self.server.state["events"].insert(1, {"type": "final_answer", "content": json.dumps(child), "answer_phase": "complete", "invocation_id": "child", "depth": 1})
+        self.assertEqual(self.events(self.post())[-1]["result"]["lab_results"][0]["value"], 123.45)
+
+    def test_reclassified_root_answer_uses_only_its_step(self):
+        self.server.state["events"] = [vision_call(),
+            {"type": "model_output_code", "content": "stale internal text", "step_id": "old", "attempt_id": "old-attempt"},
+            {"type": "model_output_code", "content": json.dumps(image_result()), "step_id": "new", "attempt_id": "new-attempt"},
+            {"type": "final_answer", "content": "", "answer_phase": "complete", "step_id": "new", "attempt_id": "new-attempt", "reclassify_step": True}]
+        response = self.post()
+        self.assertEqual(self.events(response)[-1]["type"], "result")
+        self.assertNotIn("stale internal text", response.get_data(as_text=True))
+
+    def test_no_vision_call_rejected_even_if_final_claims_it(self):
+        data = image_result()
+        data["metadata"]["vision_tool_observed"] = True
+        self.server.state["events"] = [{"type": "final_answer", "content": json.dumps(data)}]
+        self.assertEqual(self.events(self.post())[-1]["error_code"], "VISION_TOOL_NOT_CALLED")
+
+    def test_reading_another_picture_does_not_count(self):
+        self.server.state["events"][0] = vision_call("s3://nexent/attachments/another-file.png")
+        self.assertEqual(self.events(self.post())[-1]["error_code"], "VISION_TOOL_NOT_CALLED")
+
+    def test_same_key_on_unrelated_bucket_does_not_count(self):
+        self.server.state["events"][0] = vision_call("s3://unrelated-bucket/attachments/received-file.png")
+        self.assertEqual(self.events(self.post())[-1]["error_code"], "VISION_TOOL_NOT_CALLED")
+
+    def test_missing_transcript_rejected(self):
+        self.server.state["events"][-1]["content"] = json.dumps(result())
+        self.assertEqual(self.events(self.post())[-1]["error_code"], "IMAGE_TRANSCRIPT_MISSING")
+
+    def test_uncertain_reading_cannot_pass(self):
+        data = image_result()
+        data["image_transcription"]["uncertain_fields"] = ["ALT 小数点无法确认"]
+        self.server.state["events"][-1]["content"] = json.dumps(data)
+        self.assertEqual(self.events(self.post())[-1]["error_code"], "IMAGE_REVIEW_REQUIRED")
+        data.update(decision_gate="review", evidence_status="low_confidence")
+        self.server.state["events"][-1]["content"] = json.dumps(data)
+        self.assertEqual(self.events(self.post())[-1]["result"]["decision_gate"], "review")
+
+    def test_pdf_never_sent_to_image_tool(self):
+        response = self.post(b"%PDF-1.4\nexample", filename="report.pdf")
+        self.assertEqual(response.status_code, 415)
+        self.assertEqual(response.get_json()["error_code"], "VISION_PDF_UNSUPPORTED")
+        self.assertEqual(self.server.state["auth"], [])
 
 
 if __name__ == "__main__":

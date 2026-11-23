@@ -119,6 +119,7 @@ def analyze_image():
             raise ImageHandoffError("FILE_REQUIRED", "请选择一份检验单文件。", 400)
         content = files[0].read(MAX_FILE_BYTES + 1)
         mime, extension = checked_file(content)
+        client.check_file_kind(mime)
         gender = request.form.get("gender", "")
         if gender not in {"", "未知", "男", "女"}:
             raise ImageHandoffError("INVALID_GENDER", "性别请选择男、女或未知。", 400)

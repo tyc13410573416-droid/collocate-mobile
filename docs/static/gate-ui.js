@@ -5,7 +5,7 @@ let lastGateResult = null;
 function setGateBusy(busy) {
   document.querySelector(".output-card").setAttribute("aria-busy", String(busy));
   document.querySelectorAll("[data-gate-demo], .sample-button, .asset-button, .quick-action, #removeFile, #clearInput").forEach((button) => { button.disabled = busy; });
-  document.querySelectorAll("#analyzeForm input, #analyzeForm textarea, #analyzeForm select").forEach((input) => { input.disabled = busy; });
+  document.querySelectorAll("#analyzeForm input, #analyzeForm textarea, #analyzeForm select, #imageServiceForm input, #imageServiceForm button").forEach((input) => { input.disabled = busy; });
 }
 
 function openGenderDialog() {
@@ -40,7 +40,12 @@ function renderResult(result) {
   document.getElementById("clarificationBox").classList.toggle("hidden", !missingGender);
   document.getElementById("clarificationPrompt").textContent = "该指标区分男女，请补充性别后重新解读。";
   document.getElementById("confidenceAlert").classList.toggle("hidden", result.evidence_status !== "low_confidence");
-  if (result.evidence_status === "low_confidence" && !document.getElementById("confidenceAlert").textContent) document.getElementById("confidenceAlert").textContent = "图片提取置信度不足，请人工核对原始数值与单位。";
+  if (result.evidence_status === "low_confidence") {
+    const confidence = result.metadata?.extraction_confidence;
+    document.getElementById("confidenceAlert").textContent = confidence != null && Number.isFinite(Number(confidence))
+      ? `提取置信度 ${Math.round(Number(confidence) * 100)}%，请人工核对原始数值与单位。`
+      : "提取结果存在未确认字段，请人工核对原始数值与单位。";
+  }
   document.getElementById("disclaimer").textContent = result.disclaimer || "本结果仅供辅助参考，不构成任何临床诊断或用药建议。医学决策请务必以执业医师意见为准。";
   document.querySelectorAll(".status-chip.unknown").forEach((tag) => { tag.textContent = "待复核"; });
   const container = document.getElementById("gateConflicts");

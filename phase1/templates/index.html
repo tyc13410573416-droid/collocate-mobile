@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
     <link rel="icon" type="image/svg+xml" href="static/favicon.svg" />
-    <meta name="medtrace-release" content="20261123-image-handoff" />
-    <link rel="stylesheet" href="static/app.css?v=20261123-image-handoff" />
-    <link rel="stylesheet" href="static/gate-ui.css?v=20261123-image-handoff" />
+    <meta name="medtrace-release" content="20261123-native-vision" />
+    <link rel="stylesheet" href="static/app.css?v=20261123-native-vision" />
+    <link rel="stylesheet" href="static/gate-ui.css?v=20261123-native-vision" />
   </head>
   <body>
     <div class="app-frame">
@@ -43,6 +43,13 @@
           <div class="about-row"><span class="about-label">项目定位</span><span>华为 ICT 杯 · 赛题 3 · 阶段一演示</span><span class="status-pill" id="transportStatus">等待请求</span></div>
           <div class="about-row"><span class="about-label">技术配置</span><span>GLM-4.7 · embedding-3 · RAG 34 条 · Nexent Agent</span></div>
           <div class="about-row"><span class="about-label">证据能力</span><span>多模态输入 · 双路召回 · 引用溯源 · 决策门控 · 知识关联图谱</span></div>
+          <form id="imageServiceForm" class="image-service-settings">
+            <label for="imageServiceUrl">图片识别后端地址</label>
+            <p>填写团队的 MedTrace 后端地址。视觉模型与密钥在 Nexent 服务端配置。</p>
+            <input id="imageServiceUrl" type="url" placeholder="https://你的后端域名" autocomplete="off" />
+            <div class="image-service-actions"><button type="submit" class="text-button">保存并检查连接</button><button type="button" class="text-button" id="resetImageService">恢复默认</button><a href="static/downloads/medtrace-nexent-vision-v281.zip" download>下载队友接入包</a></div>
+            <p id="imageServiceStatus" role="status">未配置后端时，所选图片只在本机预览。</p>
+          </form>
           <div class="capability-strip" aria-label="评审证据维度">
             <span><b>创新性</b> 多模态输入 · 双路召回</span>
             <span><b>应用价值</b> 检验解读 · 用药核查</span>
@@ -70,7 +77,7 @@
             <span class="upload-help">JPG、PNG、WebP 或 PDF · 每份不超过 10 MB</span>
             <span class="file-name" id="fileName">也可以直接粘贴下方报告文本</span>
           </label>
-          <p class="upload-status" id="uploadStatus" role="status" data-state="idle">图片识别服务尚未接通，所选文件仅在本机预览；下方样本为预置数据演示。</p>
+          <p class="upload-status" id="uploadStatus" role="status" data-state="idle">图片识别服务尚未接通。配置图片理解服务后可提交识别；下方样本为预置数据演示。</p>
           <button type="button" class="text-button hidden" id="removeFile">移除所选文件</button>
           <div class="asset-preview hidden" id="assetPreview"><img id="assetPreviewImage" alt="脱敏检验单预览" /><span id="assetPreviewLabel"></span><a id="assetPreviewPdf" class="hidden" target="_blank" rel="noopener noreferrer">在新窗口预览 PDF</a></div>
           <div class="asset-picker" aria-label="脱敏实测样本">
@@ -130,6 +137,10 @@ AST 35 U/L（参考范围 0—40）
             <div data-gate-content>
             <p class="answer" id="answer"></p>
             <div class="answer-citations" id="answerCitations"></div>
+            <details id="imageTranscriptPanel" class="compact-details hidden">
+              <summary class="section-heading-row"><span class="section-label">查看图片转录，核对原始读数</span><span class="evidence-tag">原图核对</span></summary>
+              <div class="details-content"><p class="image-reading-note">图片读取可能出错，请对照左侧原图核对小数点、单位与参考范围。置信度不等于医学准确率。</p><pre id="imageTranscriptText" class="image-transcript"></pre><ul id="imageUncertainFields" class="checked-fields"></ul></div>
+            </details>
             <div class="schema-summary hidden" id="schemaSummary">
               <div class="section-heading-row"><p class="section-label">解析字段</p><span class="confidence-badge hidden" id="confidenceBadge"></span></div>
               <div class="patient-fields" id="patientFields"></div>
@@ -192,11 +203,12 @@ AST 35 U/L（参考范围 0—40）
       </form>
     </dialog>
     <script id="medtraceConfig">window.MEDTRACE_CONFIG = { mode: "api" };</script>
-    <script src="static/demo-results.js?v=20261123-image-handoff"></script>
-    <script src="static/gate-fixtures.js?v=20261123-image-handoff"></script>
-    <script src="static/stage2-demo.js?v=20261123-image-handoff"></script>
-    <script src="static/image-upload.js?v=20261123-image-handoff"></script>
-    <script src="static/app.js?v=20261123-image-handoff"></script>
-    <script src="static/gate-ui.js?v=20261123-image-handoff"></script>
+    <script src="static/image-settings.js?v=20261123-native-vision"></script>
+    <script src="static/demo-results.js?v=20261123-native-vision"></script>
+    <script src="static/gate-fixtures.js?v=20261123-native-vision"></script>
+    <script src="static/stage2-demo.js?v=20261123-native-vision"></script>
+    <script src="static/image-upload.js?v=20261123-native-vision"></script>
+    <script src="static/app.js?v=20261123-native-vision"></script>
+    <script src="static/gate-ui.js?v=20261123-native-vision"></script>
   </body>
 </html>

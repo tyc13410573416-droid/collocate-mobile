@@ -23,6 +23,12 @@ let previewObjectUrl = "";
 const uploadStatus = document.getElementById("uploadStatus");
 const assetPreviewPdf = document.getElementById("assetPreviewPdf");
 if (window.MEDTRACE_CONFIG?.mode === "api") uploadStatus.textContent = "选择图片后点击生成，将通过后端提交；图片识别能力以服务返回为准。";
+if (window.MEDTRACE_CONFIG?.imageApiBase) uploadStatus.textContent = "已设置图片理解后端地址。点击生成后提交，识别能力以实际结果为准。";
+window.addEventListener("medtrace-image-backend-change", () => {
+  uploadStatus.textContent = window.MEDTRACE_CONFIG.imageApiBase || window.MEDTRACE_CONFIG.mode === "api"
+    ? "已设置后端。点击生成后提交本次图片，实际识别能力以返回结果为准。"
+    : "图片识别服务尚未接通，当前文件仅在本机预览。";
+});
 
 function clearSelectedFile() {
   selectedFile = null;
@@ -216,7 +222,7 @@ fileInput?.addEventListener("change", () => {
   document.getElementById("removeFile").classList.remove("hidden");
   const config = window.MEDTRACE_CONFIG || {};
   uploadStatus.textContent = config.mode === "demo" && !config.imageApiBase
-    ? "图片识别服务尚未接通，当前文件仅在本机预览。等待服务恢复，或选择下方演示样本。"
+    ? "图片识别服务尚未接通，当前文件仅在本机预览。可在“关于本演示”设置团队后端，或选择下方演示样本。"
     : "已选中文件。点击生成后上传，识别成功前不会显示解读。";
   uploadStatus.dataset.state = "selected";
 });
@@ -257,6 +263,18 @@ function renderReportDetails(result) {
   document.getElementById("requestId").textContent = result.request_id || "已生成";
   document.getElementById("answer").textContent = result.answer || "未返回摘要";
   document.getElementById("disclaimer").textContent = result.disclaimer || "";
+  const transcription = result.image_transcription;
+  const transcriptPanel = document.getElementById("imageTranscriptPanel");
+  transcriptPanel.classList.toggle("hidden", !transcription);
+  transcriptPanel.open = Boolean(transcription && result.decision_gate === "review");
+  document.getElementById("imageTranscriptText").textContent = transcription?.raw_text || "本次没有可辨认的转录文字。";
+  const uncertainFields = document.getElementById("imageUncertainFields");
+  uncertainFields.replaceChildren();
+  (transcription?.uncertain_fields || []).forEach((field) => {
+    const item = document.createElement("li");
+    item.textContent = typeof field === "string" ? field : JSON.stringify(field);
+    uncertainFields.append(item);
+  });
 
   const answerCitations = document.getElementById("answerCitations");
   answerCitations.replaceChildren();
@@ -275,10 +293,11 @@ function renderReportDetails(result) {
   const confidenceAlert = document.getElementById("confidenceAlert");
   const patientInfo = result.patient_info || {};
   const medicationList = Array.isArray(result.medications) ? result.medications : [];
-  const confidenceValue = Number((result.metadata || {}).extraction_confidence);
+  const extractionConfidence = (result.metadata || {}).extraction_confidence;
+  const confidenceValue = extractionConfidence == null ? NaN : Number(extractionConfidence);
   patientFields?.replaceChildren();
   medicationsSummary?.replaceChildren();
-  const hasPatientSchema = patientInfo.age != null || (patientInfo.gender && patientInfo.gender !== "未知") || medicationList.length > 0;
+  const hasPatientSchema = patientInfo.age != null || (patientInfo.gender && patientInfo.gender !== "未知") || medicationList.length > 0 || Boolean(transcription) || result.evidence_status === "low_confidence";
   if (hasPatientSchema) {
     schemaSummary?.classList.remove("hidden");
     [["年龄", patientInfo.age == null ? "未提取" : `${patientInfo.age} 岁`], ["性别", patientInfo.gender || "未知"]].forEach(([label, value]) => {
