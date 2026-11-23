@@ -15,7 +15,13 @@ python app.py
 
 ## 当前演示案例
 
-结果区现在提供“正常通过 / 证据冲突 / 缺少信息 / 查无此项”四个一键演示按钮。性别补充、来源比较、审计时间轴与加载反馈已接入。共享页使用明确标注的离线样本，真实 Nexent 服务仍需配置。详情见 `phase1/docs/gate_ui_release.md`。
+结果区提供“通过 / 复核（版本冲突）/ 复核（缺性别）/ 拒答”四个视图，后端只有 pass/review/abstain 三态。性别补充、来源比较、审计时间轴与加载反馈已接入。共享页使用明确标注的离线样本，真实 Nexent 服务仍需配置。详情见 `phase1/docs/gate_ui_release.md`。
+
+## 图片上传（2026-11-23）
+
+已准备真实文件预览、multipart 上传代理、Nexent v1.8 附件与 Agent SSE 适配，以及失败不回退假数据的处理。传输测试使用本地模拟服务，**真实 OCR 尚未接通**：队友反馈镜像源损坏，当前没有可用服务地址与 Agent ID。Pages 上的图1–图5是预置数据演示，自行上传的文件不会按名称套用样例结果。
+
+恢复服务后的配置、版本核对、免费共享网页接法与验收见 [图片上传接入与联调](phase2/图片上传接入与联调.md)，服务端变量见 `.env.example`。
 
 - `R001/R002/R003`：基础合成检验单；
 - `R004`：`parse_report` 字段规范测试；
@@ -55,6 +61,6 @@ python phase1/mcp_server/e2e_test.py
 - `POST /api/tools/normalize`：单位标准化；
 - `POST /api/tools/check_interaction`：用药与异常指标规则核查。
 
-真实 Nexent 接入前，只需替换 `NEXENT_API_URL` 和 `NEXENT_API_KEY`，前端字段结构保持不变。
+`NEXENT_API_URL` 对应本项目约定的 JSON 文本适配器，不能直接假设它是 Nexent 原生接口。图片链路单独配置 `NEXENT_BASE_URL` 与 `NEXENT_IMAGE_AGENT_ID`，使用官方 v1.8 协议；恢复服务后还需核对实际部署版本。
 
 在没有 `fastmcp` 的 Python 环境中，端到端脚本会自动执行同一工具链的离线校验；安装 `phase1/mcp_server/requirements.txt` 后可切换到真实 MCP stdio/HTTP 传输。

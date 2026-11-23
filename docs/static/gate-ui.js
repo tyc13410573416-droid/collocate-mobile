@@ -4,7 +4,7 @@ let lastGateResult = null;
 
 function setGateBusy(busy) {
   document.querySelector(".output-card").setAttribute("aria-busy", String(busy));
-  document.querySelectorAll("[data-gate-demo], .sample-button, .asset-button, .quick-action").forEach((button) => { button.disabled = busy; });
+  document.querySelectorAll("[data-gate-demo], .sample-button, .asset-button, .quick-action, #removeFile, #clearInput").forEach((button) => { button.disabled = busy; });
   document.querySelectorAll("#analyzeForm input, #analyzeForm textarea, #analyzeForm select").forEach((input) => { input.disabled = busy; });
 }
 
@@ -40,13 +40,14 @@ function renderResult(result) {
   document.getElementById("clarificationBox").classList.toggle("hidden", !missingGender);
   document.getElementById("clarificationPrompt").textContent = "该指标区分男女，请补充性别后重新解读。";
   document.getElementById("confidenceAlert").classList.toggle("hidden", result.evidence_status !== "low_confidence");
+  if (result.evidence_status === "low_confidence" && !document.getElementById("confidenceAlert").textContent) document.getElementById("confidenceAlert").textContent = "图片提取置信度不足，请人工核对原始数值与单位。";
   document.getElementById("disclaimer").textContent = result.disclaimer || "本结果仅供辅助参考，不构成任何临床诊断或用药建议。医学决策请务必以执业医师意见为准。";
   document.querySelectorAll(".status-chip.unknown").forEach((tag) => { tag.textContent = "待复核"; });
   const container = document.getElementById("gateConflicts");
   container.replaceChildren();
   if (conflict) (result.conflicts || []).forEach((item) => renderConflict(item, result, container));
   document.getElementById("auditPanel").open = false;
-  document.getElementById("auditMode").textContent = window.MEDTRACE_CONFIG.mode === "demo" || result.request_id?.startsWith("mock-") ? "演示判定记录" : "接口判定记录";
+  document.getElementById("auditMode").textContent = result.transport === "nexent-image-http" ? "图片接口判定记录" : window.MEDTRACE_CONFIG.mode === "demo" || result.request_id?.startsWith("mock-") ? "演示判定记录" : "接口判定记录";
   // Do not flash a stale sex prompt after the user corrected it.
   if (missingGender) openGenderDialog();
 }

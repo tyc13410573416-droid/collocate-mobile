@@ -87,3 +87,9 @@ button:focus-visible, summary:focus-visible { outline: 3px solid #0067d94d; outl
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+.upload-status { margin: 8px 0 12px; color: #586069; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.upload-status[data-state="error"] { color: #586069; font-weight: 600; }
+.file-name { overflow-wrap: anywhere; word-break: break-word; }
+.asset-preview.selected-file-preview { grid-template-columns: 1fr; gap: 8px; }
+.asset-preview.selected-file-preview img { width: 100%; height: auto; max-height: 320px; object-fit: contain; background: #f5f7fa; }
+.asset-preview a { color: #0067d9; text-decoration: underline; }

@@ -18,6 +18,34 @@ const assetPreview = document.getElementById("assetPreview");
 const assetPreviewImage = document.getElementById("assetPreviewImage");
 const assetPreviewLabel = document.getElementById("assetPreviewLabel");
 let selectedAsset = "";
+let selectedFile = null;
+let previewObjectUrl = "";
+const uploadStatus = document.getElementById("uploadStatus");
+const assetPreviewPdf = document.getElementById("assetPreviewPdf");
+if (window.MEDTRACE_CONFIG?.mode === "api") uploadStatus.textContent = "选择图片后点击生成，将通过后端提交；图片识别能力以服务返回为准。";
+
+function clearSelectedFile() {
+  selectedFile = null;
+  fileInput.value = "";
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  previewObjectUrl = "";
+  assetPreviewPdf?.classList.add("hidden");
+  assetPreviewImage?.classList.remove("hidden");
+  assetPreview?.classList.remove("selected-file-preview");
+  document.getElementById("removeFile")?.classList.add("hidden");
+  if (uploadStatus) {
+    uploadStatus.dataset.state = "idle";
+    uploadStatus.textContent = "图片仅在点击生成后提交；选择演示样本会使用预置数据。";
+  }
+}
+
+function resetOutputForInput() {
+  resultPanel.classList.add("hidden");
+  errorBanner.classList.add("hidden");
+  emptyState.classList.remove("hidden");
+  emptyState.querySelector("strong").textContent = "等待本次输入";
+  emptyState.querySelector("span").textContent = "点击生成，按当前内容重新核对。";
+}
 
 const assetSamples = {
   coagulation: { label: "图1 · 凝血四项（8 个 ↑↓ 异常指标）", image: "static/assets/medical-demo/sample-01-coagulation.png", reportId: "R007", text: "脱敏检验单图1：PT 19.40 s（9.4-12.5）；PTA 47 %（80-160）；INR 1.7（0.8-1.2）；Ratio 1.7（0.8-1.2）；APTT 40.2 s（21-37）；Fib 5.80 g/L（2-4）；TT 20.2 s（13.5-19.5）；D-Dimer 254 μg/L（DDU）（0-252）。" },
@@ -74,14 +102,17 @@ function traceStatusLabel(status) {
 function selectAsset(assetId) {
   const sample = assetSamples[assetId];
   if (!sample) return;
+  clearSelectedFile();
+  resetOutputForInput();
   selectedAsset = assetId;
   reportIdInput.value = sample.reportId;
   rawTextInput.value = sample.text;
   medicationsInput.value = "";
   if (genderInput) genderInput.value = "";
-  fileName.textContent = `${sample.label} · 已载入脱敏演示资产`;
+  fileName.textContent = `${sample.label} · 预置数据演示，不是实时 OCR`;
   if (assetPreview && assetPreviewImage && assetPreviewLabel) {
     assetPreviewImage.src = sample.image;
+    assetPreviewImage.alt = sample.label;
     assetPreviewLabel.textContent = sample.label;
     assetPreview.classList.remove("hidden");
   }
@@ -95,6 +126,8 @@ document.querySelectorAll(".asset-button").forEach((button) => {
 });
 
 function loadSample(reportId) {
+  clearSelectedFile();
+  resetOutputForInput();
   const id = sampleTexts[reportId] ? reportId : "R001";
   reportIdInput.value = id;
   rawTextInput.value = sampleTexts[id];
@@ -125,6 +158,8 @@ document.getElementById("quickCase")?.addEventListener("click", () => {
 });
 
 document.getElementById("clearInput")?.addEventListener("click", () => {
+  clearSelectedFile();
+  resetOutputForInput();
   reportIdInput.value = "";
   rawTextInput.value = "";
   medicationsInput.value = "";
@@ -139,24 +174,58 @@ document.getElementById("clearInput")?.addEventListener("click", () => {
 });
 
 fileInput?.addEventListener("change", () => {
+  if (submitButton.disabled) return;
   const file = fileInput.files?.[0];
   if (!file) return;
-  const assetEntry = Object.entries(assetSamples).find(([, sample]) => file.name.toLowerCase().includes(sample.image.split("/").pop().toLowerCase()));
-  if (assetEntry) {
-    selectAsset(assetEntry[0]);
-    fileName.textContent = `${file.name} · 已载入脱敏图片样本`;
-    return;
-  }
-  fileName.textContent = `${file.name} · 尚未接入真实 OCR，请选择下方样本或粘贴报告文本`;
-  fileInput.value = "";
+  clearSelectedFile();
+  resetOutputForInput();
+  selectedAsset = "";
+  document.querySelectorAll(".asset-button, .sample-button").forEach((button) => button.classList.remove("active"));
   reportIdInput.value = "";
   rawTextInput.value = "";
   medicationsInput.value = "";
+  if (genderInput) genderInput.value = "";
   resizeInputTextareas();
-  selectedAsset = "";
   assetPreview?.classList.add("hidden");
-  resultPanel.classList.add("hidden");
-  emptyState.classList.remove("hidden");
+  try {
+    window.MEDTRACE_IMAGES.validate(file);
+  } catch (error) {
+    fileName.textContent = "未选择有效文件";
+    uploadStatus.textContent = error.message;
+    uploadStatus.dataset.state = "error";
+    return;
+  }
+  selectedFile = file;
+  previewObjectUrl = URL.createObjectURL(file);
+  fileName.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB · 已选中`;
+  assetPreviewLabel.textContent = "本机文件预览 · 尚未上传";
+  if (/\.pdf$/i.test(file.name)) {
+    assetPreviewImage.classList.add("hidden");
+    assetPreviewPdf.href = previewObjectUrl;
+    assetPreviewPdf.classList.remove("hidden");
+  } else {
+    assetPreviewImage.src = previewObjectUrl;
+    assetPreviewImage.alt = "本次所选检验单，仅在本机预览";
+    assetPreviewPdf.href = previewObjectUrl;
+    assetPreviewPdf.textContent = "查看完整图片";
+    assetPreviewPdf.classList.remove("hidden");
+  }
+  if (/\.pdf$/i.test(file.name)) assetPreviewPdf.textContent = "在新窗口预览 PDF";
+  assetPreview.classList.add("selected-file-preview");
+  assetPreview.classList.remove("hidden");
+  document.getElementById("removeFile").classList.remove("hidden");
+  const config = window.MEDTRACE_CONFIG || {};
+  uploadStatus.textContent = config.mode === "demo" && !config.imageApiBase
+    ? "图片识别服务尚未接通，当前文件仅在本机预览。等待服务恢复，或选择下方演示样本。"
+    : "已选中文件。点击生成后上传，识别成功前不会显示解读。";
+  uploadStatus.dataset.state = "selected";
+});
+
+document.getElementById("removeFile")?.addEventListener("click", () => {
+  clearSelectedFile();
+  assetPreview.classList.add("hidden");
+  fileName.textContent = "也可以直接粘贴下方报告文本";
+  resetOutputForInput();
 });
 
 ["dragenter", "dragover"].forEach((eventName) => dropZone?.addEventListener(eventName, (event) => {
@@ -168,6 +237,7 @@ fileInput?.addEventListener("change", () => {
   dropZone.classList.remove("dragover");
 }));
 dropZone?.addEventListener("drop", (event) => {
+  if (submitButton.disabled) return;
   const file = event.dataTransfer?.files?.[0];
   if (!file) return;
   fileInput.files = event.dataTransfer.files;
@@ -539,6 +609,14 @@ document.querySelectorAll('a[href="#openGraph"]').forEach((link) => {
 });
 
 async function requestAnalysis(payload) {
+  if (selectedFile) {
+    return window.MEDTRACE_IMAGES.analyze(selectedFile, payload, (stage, label) => {
+      uploadStatus.dataset.state = stage;
+      uploadStatus.textContent = label;
+      document.getElementById("loadingMessage").textContent = label;
+      assetPreviewLabel.textContent = stage === "complete" ? "本次文件 · 已收到识别结果" : stage === "uploading" ? "本次文件 · 正在上传" : "本次文件 · 已上传";
+    });
+  }
   if (window.MEDTRACE_CONFIG?.mode === "demo") {
     return window.MEDTRACE_DEMO.analyze(payload);
   }
@@ -571,7 +649,10 @@ form.addEventListener("submit", async (event) => {
   emptyState.classList.add("hidden");
   errorBanner.classList.add("hidden");
   loadingState.classList.remove("hidden");
-  animateAgentTimeline();
+  document.getElementById("loadingMessage").textContent = selectedFile ? "正在提交本次图片…" : "正在核对报告与证据…";
+  // Photo progress comes from actual handoff events, not the demo timer.
+  agentTimeline.classList.toggle("hidden", Boolean(selectedFile));
+  if (!selectedFile) animateAgentTimeline();
   try {
     const startedAt = performance.now();
     const result = await requestAnalysis({
@@ -585,7 +666,7 @@ form.addEventListener("submit", async (event) => {
     await new Promise((resolve) => setTimeout(resolve, Math.max(0, 650 - (performance.now() - startedAt))));
     renderResult(result);
     resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
-    transportStatus.textContent = result.transport === "nexent-http" ? "Nexent API 已联通" : (result.transport === "mock-nexent-http" ? "Mock API 已联通" : (result.transport === "github-pages-demo" ? "GitHub Pages 演示模式" : "本地演示模式"));
+    transportStatus.textContent = result.transport === "nexent-image-http" ? "已收到图片门控结果" : result.transport === "nexent-http" ? "Nexent API 已联通" : (result.transport === "mock-nexent-http" ? "Mock API 已联通" : (result.transport === "github-pages-demo" ? "GitHub Pages 演示模式" : "本地演示模式"));
     transportStatus.className = "status-pill ready";
   } catch (error) {
     loadingState.classList.add("hidden");
@@ -593,6 +674,10 @@ form.addEventListener("submit", async (event) => {
     emptyState.classList.add("hidden");
     errorBanner.textContent = `联调失败：${error.message}`;
     errorBanner.classList.remove("hidden");
+    if (selectedFile) {
+      uploadStatus.textContent = `${error.message} 文件仍保留，可重试或移除。`;
+      uploadStatus.dataset.state = "error";
+    }
     transportStatus.textContent = `请求失败：${error.message}`;
     transportStatus.className = "status-pill";
   } finally {

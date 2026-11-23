@@ -6,6 +6,7 @@ RUN pip install --no-cache-dir -r /app/phase1/requirements.txt
 
 COPY phase1 /app/phase1
 COPY phase2 /app/phase2
+COPY docs /app/docs
 
 ENV HOST=0.0.0.0
 ENV PORT=10000

@@ -9,7 +9,8 @@ import json
 from datetime import datetime, timezone
 
 import requests
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context
+from werkzeug.exceptions import RequestEntityTooLarge
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PHASE1_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +22,7 @@ if PHASE1_DIR not in sys.path:
 from analysis_engine import analyze_payload, _get_mcp_server
 
 from phase2.nexent_client import NexentClient, NexentClientError
+from phase2.nexent_image_client import NexentImageClient, ImageHandoffError, checked_file, MAX_FILE_BYTES
 
 
 # Local Flask and GitHub Pages use the same UI assets to prevent version drift.
@@ -29,6 +31,7 @@ MOCK_NEXENT_URL = os.environ.get("MOCK_NEXENT_URL", "http://127.0.0.1:5051/v1/an
 APP_MODE = os.environ.get("APP_MODE", "demo").lower()
 NEXENT_API_URL = os.environ.get("NEXENT_API_URL", MOCK_NEXENT_URL)
 NEXENT_CLIENT = NexentClient(endpoint=NEXENT_API_URL)
+app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_BYTES + 64 * 1024
 ACCESS_LOG_PATH = os.path.join(os.path.dirname(__file__), "logs", "access.jsonl")
 os.makedirs(os.path.dirname(ACCESS_LOG_PATH), exist_ok=True)
 
@@ -42,7 +45,7 @@ def visitor_hash() -> str:
 
 @app.after_request
 def record_access(response):
-    if request.path in {"/", "/api/analyze", "/api/health"}:
+    if request.path in {"/", "/api/analyze", "/api/analyze-image", "/api/health"}:
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "method": request.method,
@@ -52,7 +55,31 @@ def record_access(response):
         }
         with open(ACCESS_LOG_PATH, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    if request.path in {"/api/analyze-image", "/api/image-status"}:
+        origin = request.headers.get("Origin", "")
+        allowed = os.environ.get("IMAGE_ALLOWED_ORIGINS", "").split(",")
+        if origin and origin in [value.strip() for value in allowed]:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@app.before_request
+def image_origin_check():
+    if request.path not in {"/api/analyze-image", "/api/image-status"}:
+        return None
+    origin = request.headers.get("Origin", "")
+    allowed = [value.strip() for value in os.environ.get("IMAGE_ALLOWED_ORIGINS", "").split(",")]
+    if origin and origin != request.host_url.rstrip("/") and origin not in allowed:
+        return jsonify({"error": "当前网页未获准使用图片接口。", "error_code": "ORIGIN_NOT_ALLOWED"}), 403
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def file_too_large(_error):
+    return jsonify({"error": "单个文件不能超过 10 MB。", "error_code": "FILE_TOO_LARGE"}), 413
 
 
 @app.route("/", methods=["GET"])
@@ -69,6 +96,49 @@ def health():
         "nexent_url_configured": bool(NEXENT_API_URL),
         "mcp_tools": bool(_get_mcp_server()),
     })
+
+
+@app.route("/api/image-status", methods=["GET"])
+def image_status():
+    client = NexentImageClient.from_env()
+    try:
+        client.check_config()
+    except ImageHandoffError as exc:
+        return jsonify({"configured": False, "error_code": exc.code, "message": str(exc)})
+    # Configuration is not a claim of OCR service availability.
+    return jsonify({"configured": True, "message": "接口已配置，实际识别能力以请求结果为准。"})
+
+
+@app.route("/api/analyze-image", methods=["POST"])
+def analyze_image():
+    client = NexentImageClient.from_env()
+    try:
+        client.check_config()
+        files = request.files.getlist("file")
+        if len(files) != 1:
+            raise ImageHandoffError("FILE_REQUIRED", "请选择一份检验单文件。", 400)
+        content = files[0].read(MAX_FILE_BYTES + 1)
+        mime, extension = checked_file(content)
+        gender = request.form.get("gender", "")
+        if gender not in {"", "未知", "男", "女"}:
+            raise ImageHandoffError("INVALID_GENDER", "性别请选择男、女或未知。", 400)
+        context = {"patient_info": {"gender": gender or "未知"},
+                   "raw_text": request.form.get("raw_text", ""),
+                   "medications": request.form.get("medications", "")}
+        if sum(len(value) for value in (context["raw_text"], context["medications"])) > 16000:
+            raise ImageHandoffError("CONTEXT_TOO_LARGE", "补充文本过长，请精简后重试。", 400)
+    except ImageHandoffError as exc:
+        return jsonify({"error": str(exc), "error_code": exc.code}), exc.status
+
+    def stream():
+        try:
+            for event in client.events(content, mime, extension, context):
+                yield json.dumps(event, ensure_ascii=False) + "\n"
+        except ImageHandoffError as exc:
+            yield json.dumps({"type": "error", "error": str(exc), "error_code": exc.code}, ensure_ascii=False) + "\n"
+
+    return Response(stream_with_context(stream()), content_type="application/x-ndjson; charset=utf-8",
+                    headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"})
 
 
 @app.route("/api/tools/query_reference", methods=["POST"])

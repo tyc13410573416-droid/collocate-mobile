@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
     <link rel="icon" type="image/svg+xml" href="static/favicon.svg" />
-    <meta name="medtrace-release" content="20261122-gate-ui" />
-    <link rel="stylesheet" href="static/app.css?v=20261122-gate-ui" />
-    <link rel="stylesheet" href="static/gate-ui.css?v=20261122-gate-ui" />
+    <meta name="medtrace-release" content="20261123-image-handoff" />
+    <link rel="stylesheet" href="static/app.css?v=20261123-image-handoff" />
+    <link rel="stylesheet" href="static/gate-ui.css?v=20261123-image-handoff" />
   </head>
   <body>
     <div class="app-frame">
@@ -58,20 +58,23 @@
               <p class="card-kicker">报告输入</p>
               <h2>输入检验单</h2>
             </div>
-            <span class="synthetic-tag">合成样本</span>
+            <span class="synthetic-tag">报告输入</span>
           </div>
           <label for="reportId">样本编号</label>
           <input id="reportId" name="report_id" value="R001" autocomplete="off" />
           <label>输入方式</label>
           <label class="upload-dropzone" for="reportFile" id="dropZone">
-            <input id="reportFile" type="file" accept=".png,.jpg,.jpeg,.pdf" />
+            <input id="reportFile" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf" aria-describedby="uploadStatus" />
             <span class="upload-icon">＋</span>
             <span class="upload-title">上传检验单图片或 PDF</span>
-            <span class="upload-help">图片识别演示请选下方样本；任意文件 OCR 待接入</span>
+            <span class="upload-help">JPG、PNG、WebP 或 PDF · 每份不超过 10 MB</span>
             <span class="file-name" id="fileName">也可以直接粘贴下方报告文本</span>
           </label>
+          <p class="upload-status" id="uploadStatus" role="status" data-state="idle">图片识别服务尚未接通，所选文件仅在本机预览；下方样本为预置数据演示。</p>
+          <button type="button" class="text-button hidden" id="removeFile">移除所选文件</button>
+          <div class="asset-preview hidden" id="assetPreview"><img id="assetPreviewImage" alt="脱敏检验单预览" /><span id="assetPreviewLabel"></span><a id="assetPreviewPdf" class="hidden" target="_blank" rel="noopener noreferrer">在新窗口预览 PDF</a></div>
           <div class="asset-picker" aria-label="脱敏实测样本">
-            <div class="asset-picker-heading"><span>脱敏实测样本</span><small>仅用于演示，不上传原始患者信息</small></div>
+            <div class="asset-picker-heading"><span>脱敏演示样本</span><small>预置数据展示，不是实时图片识别</small></div>
             <div class="asset-picker-buttons">
               <button type="button" class="asset-button" data-asset="coagulation">图1 · 凝血四项</button>
               <button type="button" class="asset-button" data-asset="glucose-crp">图2 · 葡萄糖 + CRP</button>
@@ -79,7 +82,6 @@
               <button type="button" class="asset-button" data-asset="urine">图4 · 尿蛋白</button>
               <button type="button" class="asset-button" data-asset="liver">图5 · 肝肾系列</button>
             </div>
-            <div class="asset-preview hidden" id="assetPreview"><img id="assetPreviewImage" alt="脱敏检验单预览" /><span id="assetPreviewLabel"></span></div>
           </div>
           <label for="rawText">报告文本</label>
           <textarea id="rawText" name="raw_text" rows="13">合成检验单 R001
@@ -108,13 +110,13 @@ AST 35 U/L（参考范围 0—40）
           <div class="gate-demo-picker" id="gateDemoPicker" aria-label="门控状态演示">
             <div class="gate-demo-heading"><strong>试试四种门控状态</strong><span>合成数据 · 点击即演示</span></div>
             <div class="gate-demo-buttons">
-              <button type="button" data-gate-demo="R012" aria-pressed="false"><i class="state-dot pass"></i>正常通过</button>
-              <button type="button" data-gate-demo="R005" aria-pressed="false"><i class="state-dot review"></i>证据冲突</button>
-              <button type="button" data-gate-demo="R013" aria-pressed="false"><i class="state-dot review"></i>缺少信息</button>
-              <button type="button" data-gate-demo="R006" aria-pressed="false"><i class="state-dot abstain"></i>查无此项</button>
+              <button type="button" data-gate-demo="R012" aria-pressed="false"><i class="state-dot pass"></i>通过</button>
+              <button type="button" data-gate-demo="R005" aria-pressed="false"><i class="state-dot review"></i>复核（版本冲突）</button>
+              <button type="button" data-gate-demo="R013" aria-pressed="false"><i class="state-dot review"></i>复核（缺性别）</button>
+              <button type="button" data-gate-demo="R006" aria-pressed="false"><i class="state-dot abstain"></i>拒答</button>
             </div>
           </div>
-          <div id="loadingState" class="loading-state hidden"><span class="spinner"></span><div><strong>正在检索并整理</strong><span>Agent 正在读取报告、核对参考范围并准备来源引用…</span><div class="agent-timeline" id="agentTimeline"><span class="agent-step pending" data-agent-step="parse_report">抽取</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="normalize">标准化</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="query_reference">检索</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="check_interaction">核查</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="summarize">汇总</span></div></div></div>
+          <div id="loadingState" class="loading-state hidden"><span class="spinner"></span><div><strong>正在处理本次输入</strong><span id="loadingMessage">正在核对报告与证据…</span><div class="agent-timeline" id="agentTimeline"><span class="agent-step pending" data-agent-step="parse_report">抽取</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="normalize">标准化</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="query_reference">检索</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="check_interaction">核查</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="summarize">汇总</span></div></div></div>
           <div id="emptyState" class="empty-state"><div class="empty-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 23V9m0 0-5 5m5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 25h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><strong>等待一份检验报告</strong><span>提交左侧合成报告后，这里会显示解读摘要、指标状态和可点击来源。</span></div>
           <div id="errorBanner" class="error-banner hidden" role="alert"></div>
           <div id="resultPanel" class="hidden">
@@ -190,10 +192,11 @@ AST 35 U/L（参考范围 0—40）
       </form>
     </dialog>
     <script id="medtraceConfig">window.MEDTRACE_CONFIG = { mode: "api" };</script>
-    <script src="static/demo-results.js?v=20261122-gate-ui"></script>
-    <script src="static/gate-fixtures.js?v=20261122-gate-ui"></script>
-    <script src="static/stage2-demo.js?v=20261122-gate-ui"></script>
-    <script src="static/app.js?v=20261122-gate-ui"></script>
-    <script src="static/gate-ui.js?v=20261122-gate-ui"></script>
+    <script src="static/demo-results.js?v=20261123-image-handoff"></script>
+    <script src="static/gate-fixtures.js?v=20261123-image-handoff"></script>
+    <script src="static/stage2-demo.js?v=20261123-image-handoff"></script>
+    <script src="static/image-upload.js?v=20261123-image-handoff"></script>
+    <script src="static/app.js?v=20261123-image-handoff"></script>
+    <script src="static/gate-ui.js?v=20261123-image-handoff"></script>
   </body>
 </html>
