@@ -37,6 +37,8 @@ PDF 可预览；本地 OCR 通道要求先导出成图片。上传照片不会�
 
 共享监控会检查连接、恢复中断的共享进程并更新地址；网络故障仍需等待网络恢复。共享期间使用进程级 Windows 电源请求防止自动空闲休眠，不改电源计划，关闭共享后释放。关机、手动休眠或合盖休眠仍会停止真实 OCR。没有设置 Windows 开机任务；重启电脑后运行共享入口即可恢复。
 
+本机 API 使用 Gunicorn 单进程、4 线程运行，systemd 在进程异常退出时重启；图片任务保留单并发限制，健康检查和其他页面请求可同时处理。
+
 临时 HTTPS 后台连接仍由免费隧道提供，不保证全天在线，也没有可用性 SLA。固定网页、预置案例不依赖这台电脑；当 OCR 离线时会明确显示离线，不能回放假结果充当本次图片识别。后台地址变化后页面自动读取新地址；已有页面可重新提交以检查连接。
 
 `关闭队友共享.cmd` 会停止监控、关闭隧道并标记 OCR 离线，本机工作台仍可使用。停止整个 MedTrace 时也会关闭共享。共享只连接本机 5052 工作台，不公开 Nexent 管理后台。多位队友同时提交时，只处理一份图片，其余请求提示稍后重试。
@@ -45,6 +47,7 @@ PDF 可预览；本地 OCR 通道要求先导出成图片。上传照片不会�
 
 ```powershell
 python -m unittest phase1/test_prompt_contract.py phase2/test_nexent_client.py phase2/tests/test_gate_flow.py phase2/tests/test_image_handoff.py phase2/tests/test_local_image.py
+node --test phase2/tests/shared-backend.test.cjs
 ```
 
 几何与协议测试验证参考列误读防护、相邻行防串值、结果回执与图片绑定、授权刷新和三态契约；这些模拟测试不代替真实图片实测。

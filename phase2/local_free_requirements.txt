@@ -1,3 +1,4 @@
 # Optional local CPU image workflow. No cloud OCR/VLM account is required.
 rapidocr-onnxruntime==1.4.4
 minio>=7.2,<8
+gunicorn==23.0.0; sys_platform != "win32"
