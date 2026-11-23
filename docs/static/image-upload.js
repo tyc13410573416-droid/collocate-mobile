@@ -41,6 +41,7 @@ window.MEDTRACE_IMAGES = (() => {
   }
   async function analyze(file, payload, onStage) {
     validate(file);
+    await window.MEDTRACE_SHARED?.ensureReady();
     const url = endpoint(); // Fail before sending any bytes if not configured.
     const data = new FormData();
     // Avoid forwarding a patient name from the local filename to the proxy.
@@ -56,6 +57,10 @@ window.MEDTRACE_IMAGES = (() => {
       const response = await fetch(url, { method: "POST", body: data, signal: controller.signal, credentials: "omit" });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
+        if ([502, 503, 504, 530].includes(response.status) && window.MEDTRACE_SHARED?.enabled) {
+          await window.MEDTRACE_SHARED.refresh(true);
+          throw new Error(body.error || "识图服务连接暂不可用，演示案例仍可查看。请稍后重试本次图片。");
+        }
         throw new Error(body.error || `图片接口请求失败（HTTP ${response.status}）。`);
       }
       if (!response.headers.get("content-type")?.includes("application/x-ndjson") || !response.body) {
@@ -95,7 +100,13 @@ window.MEDTRACE_IMAGES = (() => {
       }
     } catch (error) {
       if (error.name === "AbortError") throw new Error("图片识别等待超时，文件已保留，可稍后重试。");
-      if (error instanceof TypeError) throw new Error("无法连接图片服务，请检查网络与后端跨域配置。文件已保留。");
+      if (error instanceof TypeError) {
+        if (window.MEDTRACE_SHARED?.enabled) {
+          await window.MEDTRACE_SHARED.refresh(true);
+          throw new Error("识图连接已重新检查，文件已保留。请稍后重试；演示案例仍可查看。");
+        }
+        throw new Error("无法连接图片服务，请检查网络与后端跨域配置。文件已保留。");
+      }
       if (error instanceof SyntaxError) throw new Error("图片接口返回了无法解析的数据，请后端核对协议。");
       throw error;
     } finally {

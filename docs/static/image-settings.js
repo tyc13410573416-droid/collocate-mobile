@@ -16,7 +16,7 @@
   }
   try {
     const saved = localStorage.getItem(storageKey);
-    if (saved) config.imageApiBase = normalized(saved);
+    if (saved) { config.imageApiBase = normalized(saved); config.imageManualBase = true; }
   } catch (_) { /* Storage may be disabled; configuration still works this visit. */ }
   input.value = config.imageApiBase || "";
   if (config.imageApiBase) status.textContent = "已恢复本机保存的后端地址，点击检查连接后再使用。";
@@ -29,9 +29,11 @@
     try {
       const base = normalized(input.value);
       config.imageApiBase = base;
+      config.imageManualBase = Boolean(base);
       try { if (base) localStorage.setItem(storageKey, base); else localStorage.removeItem(storageKey); } catch (_) {}
       window.dispatchEvent(new Event("medtrace-image-backend-change"));
       if (!base && config.mode !== "api") {
+        if (window.MEDTRACE_SHARED?.enabled) { await window.MEDTRACE_SHARED.refresh(true); return; }
         status.textContent = "已清除本机地址，当前使用图片预览与样本演示。";
         return;
       }
@@ -51,9 +53,11 @@
   });
   document.getElementById("resetImageService").addEventListener("click", () => {
     config.imageApiBase = originalBase;
+    config.imageManualBase = false;
     input.value = originalBase;
     try { localStorage.removeItem(storageKey); } catch (_) {}
     status.textContent = "已恢复网页默认配置。";
     window.dispatchEvent(new Event("medtrace-image-backend-change"));
+    window.MEDTRACE_SHARED?.refresh(true);
   });
 })();

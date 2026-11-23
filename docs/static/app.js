@@ -25,6 +25,12 @@ const assetPreviewPdf = document.getElementById("assetPreviewPdf");
 if (window.MEDTRACE_CONFIG?.mode === "api") uploadStatus.textContent = "选择图片后点击生成，将通过后端提交；图片识别能力以服务返回为准。";
 if (window.MEDTRACE_CONFIG?.imageApiBase) uploadStatus.textContent = "已设置图片理解后端地址。点击生成后提交，识别能力以实际结果为准。";
 window.addEventListener("medtrace-image-backend-change", () => {
+  const state = window.MEDTRACE_CONFIG.sharedImageStatus;
+  if (!window.MEDTRACE_CONFIG.imageManualBase && state) {
+    uploadStatus.textContent = state === "online" ? "团队识图服务已连接。选择图片后点击生成，地址变化会自动更新。"
+      : state === "checking" ? "正在连接团队识图服务…" : "识图服务暂离线，演示案例仍可查看。恢复后可重新提交图片。";
+    return;
+  }
   uploadStatus.textContent = window.MEDTRACE_CONFIG.imageApiBase || window.MEDTRACE_CONFIG.mode === "api"
     ? "已设置后端。点击生成后提交本次图片，实际识别能力以返回结果为准。"
     : "图片识别服务尚未接通，当前文件仅在本机预览。";
