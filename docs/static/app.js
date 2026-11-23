@@ -323,7 +323,8 @@ function renderReportDetails(result) {
   }
   if (Number.isFinite(confidenceValue)) {
     const percent = Math.round(confidenceValue * 100);
-    confidenceBadge.textContent = `提取置信度 ${percent}%`;
+    confidenceBadge.textContent = result.metadata?.confidence_kind === "uncalibrated-ocr-score"
+      ? `OCR 读字评分 ${percent}% · 非准确率` : `提取置信度 ${percent}%`;
     confidenceBadge.className = `confidence-badge ${confidenceValue < 0.8 ? "low" : "good"}`;
     if (confidenceValue < 0.8) {
       confidenceAlert.textContent = `提取置信度 ${percent}% 低于 80%，需人工核对患者信息、检验项目和用药名称。`;

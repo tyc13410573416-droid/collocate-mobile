@@ -6,6 +6,7 @@ window.MEDTRACE_IMAGES = (() => {
     uploaded: "附件已上传，正在提交给 Agent…",
     agent_submitted: "已交给 Agent，等待图片识别与证据核查…",
     vision_reading: "图片理解工具正在读取本次检验单…",
+    ocr_reading: "本地 OCR 正在读取本次图片并核对参考依据…",
     checking_evidence: "正在核对本次读数的参考依据…",
     complete: "已收到结构化识别结果",
   };
@@ -49,7 +50,7 @@ window.MEDTRACE_IMAGES = (() => {
     data.append("medications", payload.medications || "");
     data.append("gender", payload.patient_info?.gender || "未知");
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 150000);
+    const timeout = setTimeout(() => controller.abort(), 330000);
     let reader;
     try {
       const response = await fetch(url, { method: "POST", body: data, signal: controller.signal, credentials: "omit" });

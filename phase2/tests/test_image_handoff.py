@@ -5,6 +5,8 @@ import io
 import json
 import os
 import threading
+import tempfile
+from pathlib import Path
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from unittest.mock import patch
@@ -29,10 +31,31 @@ class FakeNexent(BaseHTTPRequestHandler):
     def log_message(self, *_args):
         pass
 
+    def do_GET(self):
+        if self.path == "/api/agent/stop/123":
+            self.server.state["stops"] = self.server.state.get("stops", 0) + 1
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{}')
+        else:
+            self.send_response(404)
+            self.end_headers()
+
     def do_POST(self):
         state = self.server.state
         state["auth"].append(self.headers.get("Authorization"))
-        if self.path == "/api/file/storage":
+        if self.path == "/api/user/signin":
+            state["signins"] = state.get("signins", 0) + 1
+            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            if body != {"email": "test@localhost", "password": "test-only-password"}:
+                self.send_response(401)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("Set-Cookie", "nexent_access_token=test-session-{}; HttpOnly; Path=/".format(state["signins"]))
+            self.end_headers()
+            self.wfile.write(b'{}')
+        elif self.path == "/api/file/storage":
             fields = cgi.FieldStorage(fp=self.rfile, headers=self.headers,
                                       environ={"REQUEST_METHOD": "POST", "CONTENT_TYPE": self.headers["Content-Type"]})
             state["file_bytes"] = fields["files"].file.read()
@@ -41,7 +64,7 @@ class FakeNexent(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"results": [{"success": True, "object_name": "attachments/received-file.png", "url": "s3://nexent/attachments/received-file.png"}]}).encode())
+            self.wfile.write(json.dumps({"results": [{"success": True, "object_name": "attachments/received-file.png", "url": state.get("upload_url", "s3://nexent/attachments/received-file.png")}]}).encode())
         elif self.path == "/api/agent/run":
             state["agent_body"] = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             self.send_response(200)
@@ -262,6 +285,52 @@ class NativeVisionTest(FakeNexentCase):
         self.assertEqual(response.status_code, 415)
         self.assertEqual(response.get_json()["error_code"], "VISION_PDF_UNSUPPORTED")
         self.assertEqual(self.server.state["auth"], [])
+
+
+class LocalImageTransportTest(FakeNexentCase):
+    def setUp(self):
+        super().setUp()
+        from phase2.local_image_store import save_result
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        local_env = patch.dict(os.environ, {"NEXENT_IMAGE_PROTOCOL": "v2.8.1", "NEXENT_IMAGE_READER_TOOL": "analyze_medical_image",
+                                          "NEXENT_LOCAL_RESULT_DIR": self.temp.name, "NEXENT_ATTACHMENT_BUCKET": "nexent"})
+        local_env.start();self.addCleanup(local_env.stop)
+        self.receipt = save_result("s3://nexent/attachments/received-file.png", image_result())
+        call = vision_call();call["tool_name"] = "analyze_medical_image"
+        self.server.state["events"] = [{"type":"conversation_created","content":{"conversation_id":123}},call, {"type": "execution_logs", "content": json.dumps(self.receipt)}]
+
+    def test_local_workflow_returns_frozen_tool_result_without_model_rewriting(self):
+        response = self.post()
+        data = self.events(response)[-1]["result"]
+        self.assertEqual(data["lab_results"][0]["value"],123.45)
+        self.assertEqual(data["metadata"]["result_source"],"local-tool-receipt")
+        self.assertFalse(data["metadata"]["vision_tool_observed"])
+        self.assertTrue(data["metadata"]["image_tool_observed"])
+        self.assertEqual(self.server.state["stops"],1)
+
+    def test_native_relative_location_maps_only_to_configured_actual_bucket(self):
+        self.server.state["upload_url"] = "/nexent/attachments/received-file.png"
+        self.assertEqual(self.events(self.post())[-1]["type"],"result")
+        self.assertEqual(self.server.state["agent_body"]["minio_files"][0]["url"],"s3://nexent/attachments/received-file.png")
+        self.server.state["upload_url"] = "/unrelated/attachments/received-file.png"
+        self.assertEqual(self.events(self.post())[-1]["error_code"],"ATTACHMENT_URL_MISSING")
+
+    def test_tool_name_config_cannot_inject_python(self):
+        with patch.dict(os.environ,{"NEXENT_IMAGE_READER_TOOL":"other(); print('bad')"}):
+            self.assertEqual(self.post().status_code,503)
+        self.assertEqual(self.server.state["auth"],[])
+
+    def test_local_session_is_refreshed_for_each_image_and_never_sent_to_browser(self):
+        login = Path(self.temp.name)/"login.json"
+        login.write_text(json.dumps({"email":"test@localhost","password":"test-only-password"}),encoding="utf-8")
+        with patch.dict(os.environ,{"NEXENT_LOCAL_LOGIN_FILE":str(login)}):
+            for _ in range(2):
+                response=self.post()
+                self.assertEqual(self.events(response)[-1]["type"],"result")
+                self.assertNotIn("test-session",response.get_data(as_text=True))
+        self.assertEqual(self.server.state["signins"],2)
+        self.assertEqual(self.server.state["auth"],[None,"Bearer test-session-1","Bearer test-session-1",None,"Bearer test-session-2","Bearer test-session-2"])
 
 
 if __name__ == "__main__":

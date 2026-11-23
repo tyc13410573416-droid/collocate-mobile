@@ -28,3 +28,4 @@ Thumbs.db
 *.out
 .playwright-cli/
 phase2/nexent_vision/backups/
+.local/

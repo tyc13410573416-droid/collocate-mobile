@@ -24,16 +24,21 @@ function renderResult(result) {
     view.answer = gate === "review" ? "以下为本次报告的原始读数，暂不作异常方向判定。请先完成上方复核。" : "";
   }
   renderReportDetails(view);
+  const environment = document.getElementById("environmentLabel");
+  if (environment) environment.textContent = result.transport === "nexent-image-http"
+    ? "图片解读 · 请核对原图" : "演示环境 · 合成数据";
   lastGateResult = result;
   resultPanel.dataset.gate = gate;
   document.querySelector("[data-gate-content]").hidden = gate === "abstain";
-  const passOnly = [".reasoning-block", "#openGraph", ".retrieval-block", ".evidence-block"];
-  passOnly.forEach((selector) => { document.querySelector(selector).hidden = gate !== "pass"; });
-  const missingGender = gate === "review" && (result.evidence_status === "missing_info" || result.clarification?.field === "gender");
+  const passOnly = { ".reasoning-block": result.reasoning?.length, "#openGraph": result.graph?.nodes?.length,
+    ".retrieval-block": result.retrieval?.sources?.length, ".evidence-block": result.knowledge_evidence?.raw_json };
+  Object.entries(passOnly).forEach(([selector, available]) => { document.querySelector(selector).hidden = gate !== "pass" || !available; });
+  const missingInfo = gate === "review" && result.evidence_status === "missing_info";
+  const missingGender = gate === "review" && (result.clarification?.field === "gender" || (missingInfo && !result.clarification?.field));
   const conflict = gate === "review" && result.evidence_status === "conflict";
   document.getElementById("decisionGate").className = `decision-gate ${gate}`;
   document.getElementById("gateSymbol").textContent = ({ pass: "✓", review: "!", abstain: "×" })[gate];
-  document.getElementById("gateTitle").textContent = gate === "pass" ? "门控判定：通过" : gate === "abstain" ? "知识库未收录，无法提供解读" : missingGender ? "缺少关键信息" : "门控判定：需人工复核";
+  document.getElementById("gateTitle").textContent = gate === "pass" ? "门控判定：通过" : gate === "abstain" ? "知识库未收录，无法提供解读" : missingInfo || missingGender ? "缺少关键信息" : "门控判定：需人工复核";
   const labels = { found: "证据已找到", consistent: "证据一致", conflict: "证据冲突", missing_info: "信息待补充", low_confidence: "数值待核对", missing: "依据不足" };
   document.getElementById("gateBadge").textContent = labels[result.evidence_status] || "待复核";
   document.getElementById("gateAction").textContent = gate === "abstain" ? (result.next_action || "当前没有可用检验依据，请咨询专业人员。") : conflict ? "来源参考区间不一致，请人工确认适用依据后再继续。" : (result.next_action || "请核对报告与来源依据。");
