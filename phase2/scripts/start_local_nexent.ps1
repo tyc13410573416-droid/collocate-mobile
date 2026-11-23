@@ -19,7 +19,15 @@ for ($Attempt = 0; $Attempt -lt 90; $Attempt++) {
         $Api = Invoke-RestMethod -Uri 'http://127.0.0.1:5052/api/image-status' -TimeoutSec 3
         # Windows port 8080 is used by Codex Bridge on this PC. Check the model
         # inside its WSL network, without changing that existing Windows service.
-        $ModelJson = & wsl.exe -d $Distro -u root -- curl -fsS --max-time 3 http://127.0.0.1:8080/health 2>$null
+        # Windows PowerShell 5 treats redirected native stderr as a terminating
+        # error under Stop, even when WSL exits successfully with valid JSON.
+        $PreviousPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $ModelJson = & wsl.exe -d $Distro -u root -- curl -fsS --max-time 3 http://127.0.0.1:8080/health 2>$null
+            $ModelExitCode = $LASTEXITCODE
+        } finally { $ErrorActionPreference = $PreviousPreference }
+        if ($ModelExitCode -ne 0) { throw 'Local model health check failed.' }
         $Model = $ModelJson | ConvertFrom-Json
         if ($Platform.StatusCode -eq 200 -and $Api.configured -and $Model.status -eq 'ok') { $Ready = $true; break }
     } catch { }
