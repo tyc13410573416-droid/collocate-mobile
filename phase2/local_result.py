@@ -17,7 +17,7 @@ def patient_fields(raw_text, supplied_gender):
             "gender": supplied_gender if supplied_gender in {"男", "女"} else sex}
 
 
-def build_result(readings, transcription, gender, medications, server):
+def build_result(readings, transcription, gender, medications, server, verified=False, report_conditions="unknown"):
     trace = []
     def call(name, *args, **kwargs):
         started = time.perf_counter()
@@ -33,7 +33,6 @@ def build_result(readings, transcription, gender, medications, server):
     patient = patient_fields(transcription["raw_text"], gender)
     sex = patient.get("gender", "未知")
     labs, citations, versions, gates = [], [], [], []
-    cite_ids = {}
     for row in readings:
         indicator = row["indicator"]
         ref = call("query_reference", indicator)
@@ -43,10 +42,14 @@ def build_result(readings, transcription, gender, medications, server):
         for entry in version:
             if entry not in versions: versions.append(entry)
         source_id = ref.get("source_id") or ref.get("source")
-        if source_id and source_id not in cite_ids:
-            cite_ids[source_id] = len(citations) + 1
+        citation_id = None
+        if source_id:
+            citation_id = "来源{}".format(len(citations) + 1)
             citations.append({"id": "来源{}".format(len(citations) + 1), "source_id": source_id,
+                              "indicator": indicator, "citation_key": "ref-" + indicator,
                               "title": ref.get("source") or source_id, "version": ref.get("source_version"),
+                              "version_note": "版本标签来自现有知识库，原始标准版本与页码待核验。",
+                              "original_text_available": False, "excerpt_kind": "knowledge-entry",
                               "excerpt": "{}；参考区间 {} {}。适用人群、采样条件与检测方法请结合原单核对。".format(ref.get("name"), ref.get("reference_range"), ref.get("unit")),
                               "reference_range": ref.get("reference_range")})
         limits = ref.get("gender_range", {})
@@ -60,14 +63,15 @@ def build_result(readings, transcription, gender, medications, server):
         labs.append({"test_name": row["test_name"], "abbreviation": indicator, "value": row["value"],
                      "value_comparator": row["value_comparator"], "unit": row["unit"],
                      "reference_range": ref.get("reference_range", "待核对"), "status": status,
-                     "source_id": source_id})
+                     "source_id": source_id, "citation_ids": [citation_id] if citation_id else []})
     uncertainty = transcription["uncertain_fields"]
     gate = next((g for g in gates if g["decision_gate"] == "review"), None) or next((g for g in gates if g["decision_gate"] == "abstain"), None)
     gate = dict(gate or {"decision_gate": "pass", "evidence_status": "found", "confidence": min((g["confidence"] for g in gates), default=0.0), "conflicts": [], "next_action": "请对照原图核对数值和参考条件。"})
     if not labs or uncertainty:
-        gate.update(decision_gate="review", evidence_status="low_confidence", next_action="识别存在未确认字段，请对照原图核对后再使用；可改用粘贴文本继续。", confidence=min((r["score"] for r in readings), default=0.0))
-    elif any(r["indicator"] == "GLU" for r in readings) and "空腹" not in transcription["raw_text"]:
-        gate.update(decision_gate="review", evidence_status="missing_info", next_action="原单未明确空腹状态，请人工核对参考区间的适用条件。")
+        gate.update(decision_gate="review", evidence_status="low_confidence", next_action="部分指标的读数、单位或行列对应关系尚未确认，已触发安全拦截。请核对并提交所选项目，暂不作确定性异常方向判定。", confidence=min((r["score"] for r in readings), default=0.0))
+        gate.pop("clarification", None)
+    elif any(r["indicator"] == "GLU" for r in readings) and not (report_conditions == "fasting" or (not verified and re.search(r"(?<!非)(?<!不)空腹", transcription["raw_text"]))):
+        gate.update(decision_gate="review", evidence_status="missing_info", next_action="已确认非空腹；当前血糖参考条目不适用于本次条件，请补充适用的参考依据。" if report_conditions == "nonfasting" else "原单未明确空腹状态，请人工核对参考区间的适用条件。")
         gate["clarification"] = {"field": "report_conditions", "prompt": gate["next_action"]}
     if gate["decision_gate"] == "review" and gate["evidence_status"] == "missing_info" and "clarification" not in gate:
         gate["clarification"] = {"field": "gender", "prompt": "请补充患者性别。"}
@@ -77,7 +81,11 @@ def build_result(readings, transcription, gender, medications, server):
     interaction = call("check_interaction", drugs, labs if gate["decision_gate"] == "pass" else []) if drugs else {}
     return dict(gate, request_id="local-image-" + uuid.uuid4().hex[:12], patient_info=patient,
                 lab_results=labs, medications=drugs, warnings=interaction.get("warnings", []), citations=citations, trace_log=trace,
-                metadata={"extraction_confidence": score, "workflow_engine": "local-mcp", "retrieval_mode": "reference-lookup",
+                metadata={"extraction_confidence": None if verified else score, "input_origin": "human-reviewed" if verified else "ocr",
+                          "workflow_engine": "local-mcp", "retrieval_mode": "reference-lookup", "report_conditions": report_conditions,
                           "medication_check_scope": "configured-demo-rules-only" if drugs else "not-requested"},
                 answer="已读取 {} 项可确认指标。通过只表示证据允许显示，不代表指标正常。仅处理可匹配知识库的部分指标，未收录项目需人工核对。".format(len(labs)) if gate["decision_gate"] == "pass" else "本次报告需要人工复核，暂不作确定性解读。仅显示可匹配的部分原始读数。",
+                review_issues=[{"field": "report_value", "detail": item} for item in uncertainty] +
+                              ([{"field": "gender", "detail": "性别未提供，部分参考区间需要按性别选择。"}] if any(g.get("clarification", {}).get("field") == "gender" for g in gates) else []) +
+                              ([{"field": "report_conditions", "detail": gate["next_action"]}] if gate.get("clarification", {}).get("field") == "report_conditions" else []),
                 disclaimer="本结果仅供辅助参考，不构成任何临床诊断或用药建议。医学决策请务必以执业医师意见为准。")

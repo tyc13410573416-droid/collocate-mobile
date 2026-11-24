@@ -1,0 +1,43 @@
+async (page) => {
+  const folder='C:/Users/tyc/Documents/ChatGPT/华为/交付截图/人工复核闭环_20261125';
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const assert=(ok,message)=>{if(!ok)throw new Error(message);};
+  const shot=async(name)=>{
+    await page.evaluate(()=>window.scrollTo({top:document.getElementById('workspace').getBoundingClientRect().top+scrollY-24,behavior:'instant'}));
+    await page.screenshot({path:folder+'/'+name,animations:'disabled'});
+  };
+  await page.setViewportSize({width:1600,height:1200});
+  await page.goto('https://tyc13410573416-droid.github.io/collocate-mobile/');
+  await page.waitForFunction(()=>window.MEDTRACE_CONFIG.sharedImageStatus==='online',null,{timeout:30000});
+  await page.locator('#reportFile').setInputFiles('docs/static/assets/medical-demo/sample-05-liver-panel.png');
+  await page.locator('#submitButton').click();
+  await page.waitForFunction(()=>!document.getElementById('submitButton').disabled&&!document.getElementById('resultPanel').classList.contains('hidden'),null,{timeout:180000});
+  assert(await page.locator('#resultPanel').getAttribute('data-gate')==='review','source image must be reviewed first');
+  await shot('01-识别复核与行动入口.png');
+  await page.locator('#editImageValues').click();
+  const alt=page.locator('.image-review-row[data-code="ALT"]');
+  await alt.locator('[data-field="value"]').fill('16.0');
+  await alt.locator('[data-field="unit"]').fill('IU/L');
+  await alt.locator('[data-field="confirmed"]').check();
+  await page.locator('#reviewScopeConfirmed').check();
+  await page.locator('#imageReviewEditor').screenshot({path:folder+'/02-逐项人工核对与提交.png',animations:'disabled'});
+  await page.locator('#submitImageReview').click();
+  await page.waitForFunction(()=>document.getElementById('gateBadge').textContent==='信息待补充'&&!document.getElementById('submitButton').disabled);
+  await page.locator('#completeImageInfo').click();
+  await page.locator('#imageReviewEditor').screenshot({path:folder+'/03-缺性别追问与快捷补充.png',animations:'disabled'});
+  await page.locator('[data-review-sex="男"]').click();
+  await page.waitForFunction(()=>document.getElementById('resultPanel').dataset.gate==='pass'&&!document.getElementById('submitButton').disabled);
+  assert((await page.locator('.metric-value').textContent()).includes('16U/L'),'ALT16 must normalize from IU/L to U/L');
+  await shot('04-人工核对后限定项目通过.png');
+  await page.locator('.metric-source-button').click();
+  await page.locator('#metricSourceDialog').screenshot({path:folder+'/05-指标来源详情.png',animations:'disabled'});
+  await page.locator('#closeMetricSource').click();
+  await page.locator('#auditPanel > summary').click();
+  await page.locator('#auditPanel').screenshot({path:folder+'/06-真实调用与人工核对审计.png',animations:'disabled'});
+  await page.locator('#auditPanel > summary').click();
+  await page.setViewportSize({width:390,height:1000});
+  await page.locator('.output-card').screenshot({path:folder+'/07-手机端核对结果.png',animations:'disabled'});
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'mobile overflow');
+  assert(!errors.length,errors.join(';'));
+  return {passed:true,realImage:true,website:page.url(),files:7,selected:'ALT',value:16,unit:'U/L',gender:'男（测试补充）',errors};
+}

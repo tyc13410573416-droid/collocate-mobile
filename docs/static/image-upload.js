@@ -114,5 +114,21 @@ window.MEDTRACE_IMAGES = (() => {
       if (reader) await reader.cancel().catch(() => {});
     }
   }
-  return { validate, analyze };
+  async function review(payload) {
+    await window.MEDTRACE_SHARED?.ensureReady();
+    const url = endpoint().replace(/\/analyze-image$/, "/review-image");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(url, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),credentials:"omit",signal:controller.signal});
+      const data = await response.json();
+      if(!response.ok)throw new Error(data.error || "人工核对提交失败，请保留原图后重试。");
+      checkResult(data);return data;
+    } catch(error) {
+      if(error.name === "AbortError")throw new Error("核查请求超时，填写内容已保留，可重试。");
+      if(error instanceof TypeError)throw new Error("核查服务暂不可用，填写内容已保留，请稍后重试。");
+      throw error;
+    } finally {clearTimeout(timeout);}
+  }
+  return { validate, analyze, review };
 })();

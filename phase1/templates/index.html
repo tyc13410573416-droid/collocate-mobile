@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
     <link rel="icon" type="image/svg+xml" href="static/favicon.svg" />
-    <meta name="medtrace-release" content="20261124-managed-startup" />
-    <link rel="stylesheet" href="static/app.css?v=20261124-managed-startup" />
-    <link rel="stylesheet" href="static/gate-ui.css?v=20261124-managed-startup" />
+    <meta name="medtrace-release" content="20261124-review-loop" />
+    <link rel="stylesheet" href="static/app.css?v=20261124-review-loop" />
+    <link rel="stylesheet" href="static/gate-ui.css?v=20261124-review-loop" />
   </head>
   <body>
     <div class="app-frame">
@@ -131,16 +131,27 @@ AST 35 U/L（参考范围 0—40）
               <div class="decision-gate-heading"><span class="section-label">AI 决策门控</span><span class="gate-badge" id="gateBadge"></span></div>
               <div class="gate-title-row"><span class="gate-symbol" id="gateSymbol" aria-hidden="true"></span><h3 id="gateTitle"></h3></div>
               <p class="gate-action" id="gateAction"></p>
+              <ul id="gateReviewIssues" class="gate-review-issues"></ul>
+              <div id="gateReviewActions" class="gate-review-actions hidden"><button type="button" class="review-primary" id="editImageValues">手动核对数值</button><button type="button" class="review-secondary" id="completeImageInfo">补充缺失信息</button></div>
               <div class="gate-conflicts" id="gateConflicts"></div>
               <div class="clarification-box hidden" id="clarificationBox"><span class="clarification-dot"></span><span id="clarificationPrompt"></span><button type="button" class="text-button" id="applyGender">补充性别</button></div>
             </div>
             <div data-gate-content>
+            <section id="imageReviewEditor" class="image-review-editor hidden" aria-labelledby="reviewEditorTitle">
+              <div class="review-heading"><div><p class="section-label">人工核对</p><h3 id="reviewEditorTitle">对照原图，确认本次核查项目</h3></div><button type="button" id="closeImageReview" class="text-button">收起</button></div>
+              <p class="review-instructions">修改读数和单位，并勾选已核对的项目。系统会重新核查所选指标；未勾选及原图其他项目仍需核对。</p>
+              <form id="imageReviewForm">
+                <div class="review-patient-fields"><label for="reviewGender">患者性别<select id="reviewGender"><option value="未知">未知 / 未提供</option><option value="男">男</option><option value="女">女</option></select></label><label for="reviewConditions">采样条件<select id="reviewConditions"><option value="unknown">未确认</option><option value="fasting">已确认空腹</option><option value="nonfasting">非空腹</option></select></label></div>
+                <div id="reviewQuickGender" class="gender-quick-buttons hidden" aria-label="快速补充患者性别"><button type="button" data-review-sex="男">男 · 补充并核查</button><button type="button" data-review-sex="女">女 · 补充并核查</button></div>
+                <div id="imageReviewRows" class="image-review-rows"></div>
+                <label class="review-scope-confirm"><input type="checkbox" id="reviewScopeConfirmed" required /><span>我已对照原图核对所选项目，理解本次核查不覆盖整份报告。</span></label>
+                <p id="imageReviewError" class="review-form-error hidden" role="alert"></p>
+                <div class="review-submit-row"><button type="submit" class="review-primary" id="submitImageReview">提交核对并重新解读</button><span>原始识别与修改记录将保留</span></div>
+              </form>
+            </section>
+            <p id="reviewScopeNote" class="review-scope-note hidden" role="status"></p>
             <p class="answer" id="answer"></p>
             <div class="answer-citations" id="answerCitations"></div>
-            <details id="imageTranscriptPanel" class="compact-details hidden">
-              <summary class="section-heading-row"><span class="section-label">查看图片转录，核对原始读数</span><span class="evidence-tag">原图核对</span></summary>
-              <div class="details-content"><p class="image-reading-note">图片读取可能出错，请对照左侧原图核对小数点、单位与参考范围。置信度不等于医学准确率。</p><pre id="imageTranscriptText" class="image-transcript"></pre><ul id="imageUncertainFields" class="checked-fields"></ul></div>
-            </details>
             <div class="schema-summary hidden" id="schemaSummary">
               <div class="section-heading-row"><p class="section-label">解析字段</p><span class="confidence-badge hidden" id="confidenceBadge"></span></div>
               <div class="patient-fields" id="patientFields"></div>
@@ -152,6 +163,10 @@ AST 35 U/L（参考范围 0—40）
               <div class="details-content"><div id="normalizationRows" class="normalization-rows"></div></div>
             </details>
             <div class="metric-grid" id="metrics"></div>
+            <details id="imageTranscriptPanel" class="compact-details hidden">
+              <summary class="section-heading-row"><span class="section-label">查看原始 OCR 文字与未确认字段</span><span class="evidence-tag">保留原始记录</span></summary>
+              <div class="details-content"><p class="image-reading-note">以下保留最初的图片识别记录。人工修改不会覆盖它；请对照左侧原图核对小数点、单位与参考范围。</p><pre id="imageTranscriptText" class="image-transcript"></pre><ul id="imageUncertainFields" class="checked-fields"></ul></div>
+            </details>
             <div class="reasoning-block">
               <p class="section-label">可溯源推理链</p>
               <div class="reasoning-chain" id="reasoning"></div>
@@ -197,19 +212,23 @@ AST 35 U/L（参考范围 0—40）
         <div class="dialog-heading"><span class="dialog-eyebrow">补充关键信息</span><button type="button" id="closeGenderDialog" class="dialog-close" aria-label="关闭性别补充弹窗">×</button></div>
         <h2 id="genderDialogTitle">这项指标区分男女</h2>
         <p id="genderDialogDescription">请补充患者性别后重新解读。系统会保留本次报告内容。</p>
+        <div class="gender-quick-buttons"><button type="button" data-patient-sex="男">男 · 重新核查</button><button type="button" data-patient-sex="女">女 · 重新核查</button></div>
         <label for="clarificationGender">患者性别</label>
         <select id="clarificationGender" required><option value="">请选择性别</option><option value="男">男</option><option value="女">女</option></select>
         <div class="dialog-actions"><button type="button" id="deferGender" class="dialog-secondary">稍后补充</button><button type="submit" class="dialog-primary">提交并重新解读</button></div>
       </form>
     </dialog>
     <script id="medtraceConfig">window.MEDTRACE_CONFIG = { mode: "api" };</script>
-    <script src="static/image-settings.js?v=20261124-managed-startup"></script>
-    <script src="static/shared-backend.js?v=20261124-managed-startup"></script>
-    <script src="static/demo-results.js?v=20261124-managed-startup"></script>
-    <script src="static/gate-fixtures.js?v=20261124-managed-startup"></script>
-    <script src="static/stage2-demo.js?v=20261124-managed-startup"></script>
-    <script src="static/image-upload.js?v=20261124-managed-startup"></script>
-    <script src="static/app.js?v=20261124-managed-startup"></script>
-    <script src="static/gate-ui.js?v=20261124-managed-startup"></script>
+    <div id="metricSourceTooltip" class="metric-source-tooltip hidden" role="tooltip"></div>
+    <dialog id="metricSourceDialog" class="source-detail-dialog" aria-labelledby="metricSourceTitle"><div class="review-heading"><div><p class="section-label">指标与来源</p><h2 id="metricSourceTitle"></h2></div><button type="button" id="closeMetricSource" class="dialog-close" aria-label="关闭来源详情">×</button></div><div id="metricSourceBody"></div></dialog>
+    <script src="static/image-settings.js?v=20261124-review-loop"></script>
+    <script src="static/shared-backend.js?v=20261124-review-loop"></script>
+    <script src="static/demo-results.js?v=20261124-review-loop"></script>
+    <script src="static/gate-fixtures.js?v=20261124-review-loop"></script>
+    <script src="static/stage2-demo.js?v=20261124-review-loop"></script>
+    <script src="static/image-upload.js?v=20261124-review-loop"></script>
+    <script src="static/app.js?v=20261124-review-loop"></script>
+    <script src="static/image-review.js?v=20261124-review-loop"></script>
+    <script src="static/gate-ui.js?v=20261124-review-loop"></script>
   </body>
 </html>

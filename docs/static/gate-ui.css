@@ -41,7 +41,9 @@
 .output-card [hidden] { display: none !important; }
 #resultPanel[data-gate="pass"] .metric-value.high .metric-reading,
 #resultPanel[data-gate="pass"] .metric-value.low .metric-reading { color: #dc2626; }
-#resultPanel[data-gate="pass"] .metric-value.normal .metric-reading { color: #15803d; }
+#resultPanel[data-gate="pass"] .metric-value.normal .metric-reading { color: #1b1f24; }
+.status-chip.normal { color: #586069; background: #f3f5f7; }
+.status-chip.normal::before { content: ''; display: inline-block; width: 6px; height: 6px; background: #16a34a; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
 #resultPanel[data-gate="review"] .metric-reading { color: #1b1f24; }
 .status-chip.unknown { color: #75512d; background: #f8f1e9; }
 #auditPanel { margin-top: 24px; padding-top: 16px; }
@@ -99,3 +101,53 @@ button:focus-visible, summary:focus-visible { outline: 3px solid #0067d94d; outl
 .image-service-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding-top: 12px; }
 .image-service-actions a { color: #0067d9; font-size: 13px; }
 .image-transcript { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 14px; line-height: 1.7; color: #1b1f24; }
+.gate-review-issues { margin: 12px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.8; }
+.gender-quick-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.gender-quick-buttons button { min-height: 56px; padding: 12px; background: #e8f1fb; border: 1px solid #c8d9ec; border-radius: 12px; color: #004fb5; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.gender-quick-buttons button:hover { background: #dceafa; }
+.gate-review-issues:empty { display: none; }
+.gate-review-actions, .review-submit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+.review-primary, .review-secondary { min-height: 44px; padding: 12px 16px; border-radius: 12px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s, transform .2s; }
+.review-primary { color: #fff; background: #0067d9; border: 1px solid #0067d9; }
+.review-secondary { color: #004fb5; background: #fff; border: 1px solid #d5dfec; }
+.review-primary:hover { background: #004fb5; transform: translateY(-2px); }
+.review-secondary:hover { background: #e8f1fb; }
+.review-primary:disabled { opacity: .65; cursor: wait; }
+.image-review-editor { padding: 24px; margin-bottom: 24px; border: 1px solid #c8d9ec; border-radius: 20px; background: #f8fbff; scroll-margin-top: 24px; }
+.review-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.review-heading h3 { margin: 8px 0; font-size: 20px; font-weight: 600; }
+.review-heading .section-label { margin: 0; }
+.review-instructions, .review-submit-row span { font-size: 13px; color: #586069; line-height: 1.7; }
+.review-patient-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+.review-patient-fields label, .review-row-fields label { display: grid; gap: 8px; margin: 0; font-size: 13px; color: #384351; min-width: 0; }
+.image-review-editor select, .image-review-editor input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; border: 1px solid #d5dfec; background: #fff; padding: 8px 12px; border-radius: 12px; font: inherit; font-size: 15px; color: #1b1f24; }
+.image-review-rows { display: grid; gap: 16px; }
+.image-review-row { margin: 0; padding: 16px; min-width: 0; border: 1px solid #dce5ef; border-radius: 12px; background: #fff; }
+.image-review-row legend { padding: 0 8px; font-size: 14px; font-weight: 600; }
+.review-row-fields { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 12px; }
+.review-row-confirm, .review-scope-confirm { display: flex; align-items: center; gap: 12px; font-size: 13px; line-height: 1.7; min-height: 44px; margin: 12px 0 0; cursor: pointer; }
+.review-scope-confirm { margin-top: 24px; }
+.image-review-editor input[type="checkbox"] { flex: 0 0 18px; width: 18px; height: 18px; accent-color: #0067d9; }
+.review-form-error { color: #b42318; font-size: 14px; }
+.review-scope-note { margin: 0 0 24px; padding: 16px; color: #004fb5; background: #e8f1fb; border: 1px solid #d4e3f4; border-radius: 12px; font-size: 14px; line-height: 1.7; }
+.metric-source-links { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: #586069; font-size: 12px; }
+.metric-source-button { min-height: 36px; padding: 8px; background: transparent; border: 0; color: #0067d9; font: inherit; font-weight: 600; cursor: pointer; border-radius: 8px; }
+.metric-source-button:hover { background: #e8f1fb; }
+.metric-source-tooltip { position: fixed; z-index: 1000; padding: 16px; box-sizing: border-box; background: #fff; border: 1px solid #d5dfec; border-radius: 12px; color: #384351; box-shadow: 0 12px 32px #1720401f; font-size: 13px; line-height: 1.7; white-space: pre-line; pointer-events: none; }
+.source-detail-dialog { width: min(560px, calc(100% - 32px)); box-sizing: border-box; padding: 32px; border: 1px solid #d5dfec; border-radius: 24px; background: #fff; color: #1b1f24; }
+.source-detail-dialog::backdrop { background: #17203366; backdrop-filter: blur(4px); }
+.source-detail-dialog h2 { font-size: 22px; margin: 8px 0 24px; font-weight: 600; }
+.source-detail-dialog p { font-size: 15px; line-height: 1.8; }
+.source-detail-title { font-weight: 600; }
+.source-detail-dialog .source-detail-meta, .source-detail-dialog .source-detail-note { font-size: 13px; color: #586069; }
+.source-detail-note { border-top: 1px solid #e1e4e8; padding-top: 16px; }
+@media(max-width:600px) {
+  .gate-review-actions { flex-direction: column; align-items: stretch; }
+  .image-review-editor { padding: 16px; }
+  .review-patient-fields { grid-template-columns: 1fr; }
+  .review-row-fields { grid-template-columns: 64px 1fr; }
+  .review-row-fields label:last-child { grid-column: 1 / -1; }
+  .review-submit-row { flex-direction: column; align-items: stretch; }
+  .source-detail-dialog { padding: 24px; }
+  .metric-source-button { min-height: 44px; }
+}

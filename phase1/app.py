@@ -47,7 +47,7 @@ def visitor_hash() -> str:
 
 @app.after_request
 def record_access(response):
-    if request.path in {"/", "/api/analyze", "/api/analyze-image", "/api/health"}:
+    if request.path in {"/", "/api/analyze", "/api/analyze-image", "/api/review-image", "/api/health"}:
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "method": request.method,
@@ -57,7 +57,7 @@ def record_access(response):
         }
         with open(ACCESS_LOG_PATH, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    if request.path in {"/api/analyze-image", "/api/image-status"}:
+    if request.path in {"/api/analyze-image", "/api/review-image", "/api/image-status"}:
         origin = request.headers.get("Origin", "")
         allowed = os.environ.get("IMAGE_ALLOWED_ORIGINS", "").split(",")
         if origin and origin in [value.strip() for value in allowed]:
@@ -71,7 +71,7 @@ def record_access(response):
 
 @app.before_request
 def image_origin_check():
-    if request.path not in {"/api/analyze-image", "/api/image-status"}:
+    if request.path not in {"/api/analyze-image", "/api/review-image", "/api/image-status"}:
         return None
     origin = request.headers.get("Origin", "")
     allowed = [value.strip() for value in os.environ.get("IMAGE_ALLOWED_ORIGINS", "").split(",")]
@@ -159,6 +159,25 @@ def analyze_image():
                         headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"})
     response.call_on_close(release_slot)
     return response
+
+
+@app.route("/api/review-image", methods=["POST", "OPTIONS"])
+def review_image_fields():
+    if request.method == "OPTIONS":
+        return Response(status=204)
+    if not os.environ.get("NEXENT_LOCAL_RESULT_DIR"):
+        return jsonify({"error": "当前图片后端未提供人工核对接口，请保留原图并联系部署人员。", "error_code": "REVIEW_UNAVAILABLE"}), 503
+    if request.content_length is None or request.content_length > 64 * 1024:
+        return jsonify({"error": "核对信息过长，请仅提交当前指标。", "error_code": "REVIEW_TOO_LARGE"}), 413
+    try:
+        from phase2.image_review import review_image
+        server = _get_mcp_server()
+        if server is None:
+            raise ImageHandoffError("REVIEW_UNAVAILABLE", "核查工具暂不可用，请稍后重试。", 503)
+        result = review_image(request.get_json(silent=True), server)
+        return jsonify(result)
+    except ImageHandoffError as exc:
+        return jsonify({"error": str(exc), "error_code": exc.code}), exc.status
 
 
 @app.route("/api/tools/query_reference", methods=["POST"])

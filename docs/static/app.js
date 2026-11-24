@@ -261,6 +261,8 @@ dropZone?.addEventListener("drop", (event) => {
 });
 resizeInputTextareas();
 
+function citationAnchor(citation) { return `source-${citation.citation_key || citation.source_id || citation.id}`; }
+
 function renderReportDetails(result) {
   emptyState.classList.add("hidden");
   loadingState.classList.add("hidden");
@@ -272,7 +274,7 @@ function renderReportDetails(result) {
   const transcription = result.image_transcription;
   const transcriptPanel = document.getElementById("imageTranscriptPanel");
   transcriptPanel.classList.toggle("hidden", !transcription);
-  transcriptPanel.open = Boolean(transcription && result.decision_gate === "review");
+  transcriptPanel.open = false;
   document.getElementById("imageTranscriptText").textContent = transcription?.raw_text || "本次没有可辨认的转录文字。";
   const uncertainFields = document.getElementById("imageUncertainFields");
   uncertainFields.replaceChildren();
@@ -286,7 +288,7 @@ function renderReportDetails(result) {
   answerCitations.replaceChildren();
   (result.citations || []).slice(0, 4).forEach((citation) => {
     const link = document.createElement("a");
-    link.href = `#source-${escapeText(citation.source_id)}`;
+    link.href = `#${citationAnchor(citation)}`;
     link.textContent = citation.id || "来源";
     link.title = citation.excerpt || "查看来源";
     answerCitations.append(link);
@@ -449,9 +451,10 @@ function renderReportDetails(result) {
     reference.className = "metric-reference";
     const range = item.reference_range;
     const rangeText = typeof range === "string" ? range : (range && range.low != null && range.high != null ? `${range.low}—${range.high}` : "未提供");
-    reference.textContent = `参考范围：${rangeText}`;
+    reference.textContent = `知识库参考：${rangeText}`;
     value.append(reading, unit, status);
     card.append(name, value, reference);
+    window.MEDTRACE_REVIEW?.appendCitations(card, item, result);
     metrics.append(card);
   });
 
@@ -551,11 +554,11 @@ function renderReportDetails(result) {
   (result.citations || []).forEach((citation) => {
     const card = document.createElement("article");
     card.className = "source-card";
-    card.id = `source-${escapeText(citation.source_id)}`;
+    card.id = citationAnchor(citation);
     const title = document.createElement("div");
     title.className = "source-title";
     const anchor = document.createElement("a");
-    anchor.href = `#source-${escapeText(citation.source_id)}`;
+    anchor.href = `#${citationAnchor(citation)}`;
     anchor.textContent = citation.id || "来源";
     const label = document.createElement("span");
     label.textContent = citation.title || citation.source_id || "来源依据";

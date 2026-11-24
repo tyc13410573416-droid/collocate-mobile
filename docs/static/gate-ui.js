@@ -21,20 +21,21 @@ function renderResult(result) {
   if (gate !== "pass") {
     view.lab_results = (result.lab_results || result.items || []).map((item) => ({ ...item, status: "unknown" }));
     view.reasoning = [];
-    view.answer = gate === "review" ? "以下为本次报告的原始读数，暂不作异常方向判定。请先完成上方复核。" : "";
+    view.answer = gate === "review" ? (result.review_summary ? "以下为人工核对后提交的读数，部分证据条件仍待确认，暂不作异常方向判定。" : "以下为本次报告的原始读数，暂不作异常方向判定。请先完成上方复核。") : "";
   }
   renderReportDetails(view);
   const environment = document.getElementById("environmentLabel");
   if (environment) environment.textContent = result.transport === "nexent-image-http"
     ? "图片解读 · 请核对原图" : "演示环境 · 合成数据";
   lastGateResult = result;
+  window.MEDTRACE_REVIEW?.render(result);
   resultPanel.dataset.gate = gate;
   document.querySelector("[data-gate-content]").hidden = gate === "abstain";
   const passOnly = { ".reasoning-block": result.reasoning?.length, "#openGraph": result.graph?.nodes?.length,
     ".retrieval-block": result.retrieval?.sources?.length, ".evidence-block": result.knowledge_evidence?.raw_json };
   Object.entries(passOnly).forEach(([selector, available]) => { document.querySelector(selector).hidden = gate !== "pass" || !available; });
   const missingInfo = gate === "review" && result.evidence_status === "missing_info";
-  const missingGender = gate === "review" && (result.clarification?.field === "gender" || (missingInfo && !result.clarification?.field));
+  const missingGender = gate === "review" && missingInfo && (result.clarification?.field === "gender" || !result.clarification?.field);
   const conflict = gate === "review" && result.evidence_status === "conflict";
   document.getElementById("decisionGate").className = `decision-gate ${gate}`;
   document.getElementById("gateSymbol").textContent = ({ pass: "✓", review: "!", abstain: "×" })[gate];
@@ -42,13 +43,14 @@ function renderResult(result) {
   const labels = { found: "证据已找到", consistent: "证据一致", conflict: "证据冲突", missing_info: "信息待补充", low_confidence: "数值待核对", missing: "依据不足" };
   document.getElementById("gateBadge").textContent = labels[result.evidence_status] || "待复核";
   document.getElementById("gateAction").textContent = gate === "abstain" ? (result.next_action || "当前没有可用检验依据，请咨询专业人员。") : conflict ? "来源参考区间不一致，请人工确认适用依据后再继续。" : (result.next_action || "请核对报告与来源依据。");
+  if (result.review_message) document.getElementById("gateAction").textContent = result.review_message;
   document.getElementById("clarificationBox").classList.toggle("hidden", !missingGender);
   document.getElementById("clarificationPrompt").textContent = "该指标区分男女，请补充性别后重新解读。";
   document.getElementById("confidenceAlert").classList.toggle("hidden", result.evidence_status !== "low_confidence");
   if (result.evidence_status === "low_confidence") {
     const confidence = result.metadata?.extraction_confidence;
     document.getElementById("confidenceAlert").textContent = confidence != null && Number.isFinite(Number(confidence))
-      ? `提取置信度 ${Math.round(Number(confidence) * 100)}%，请人工核对原始数值与单位。`
+      ? `${result.metadata?.confidence_kind === "uncalibrated-ocr-score" ? "OCR 读字评分" : "提取置信度"} ${Math.round(Number(confidence) * 100)}%，请人工核对原始数值与单位。`
       : "提取结果存在未确认字段，请人工核对原始数值与单位。";
   }
   document.getElementById("disclaimer").textContent = result.disclaimer || "本结果仅供辅助参考，不构成任何临床诊断或用药建议。医学决策请务必以执业医师意见为准。";
@@ -59,7 +61,7 @@ function renderResult(result) {
   document.getElementById("auditPanel").open = false;
   document.getElementById("auditMode").textContent = result.transport === "nexent-image-http" ? "图片接口判定记录" : window.MEDTRACE_CONFIG.mode === "demo" || result.request_id?.startsWith("mock-") ? "演示判定记录" : "接口判定记录";
   // Do not flash a stale sex prompt after the user corrected it.
-  if (missingGender) openGenderDialog();
+  if (missingGender && !result.metadata?.human_verified) openGenderDialog();
 }
 
 function renderConflict(conflict, result, container) {
@@ -99,6 +101,11 @@ document.querySelectorAll("[data-gate-demo]").forEach((button) => {
   });
 });
 document.getElementById("applyGender").addEventListener("click", openGenderDialog);
+document.querySelectorAll("[data-patient-sex]").forEach(button=>button.addEventListener("click",()=>{
+  if(submitButton.disabled)return;
+  genderInput.value=button.dataset.patientSex;
+  genderDialog.close();form.requestSubmit();
+}));
 document.getElementById("genderDialogForm").addEventListener("submit", (event) => {
   event.preventDefault();
   const value = document.getElementById("clarificationGender").value;

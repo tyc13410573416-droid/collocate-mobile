@@ -1,0 +1,53 @@
+async (page) => {
+  const errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+  await page.setViewportSize({width:1600,height:1200});
+  await page.goto('http://127.0.0.1:5052/');
+  await page.locator('#reportFile').setInputFiles('docs/static/assets/medical-demo/sample-05-liver-panel.png');
+  await page.locator('#submitButton').click();
+  await page.waitForFunction(()=>!document.getElementById('submitButton').disabled&&!document.getElementById('resultPanel').classList.contains('hidden'),null,{timeout:180000});
+  assert(await page.locator('#resultPanel').getAttribute('data-gate')==='review','unconfirmed image stays review');
+  assert(await page.locator('#editImageValues').isVisible(),'real action opens value editor');
+  assert((await page.locator('#gateReviewIssues').textContent()).includes('单位'),'specific unit issue shown');
+  assert(!(await page.locator('#imageTranscriptPanel').getAttribute('open')),'OCR transcript is collapsed so readings remain visible');
+  const original=await page.locator('#imageTranscriptText').textContent();
+  await page.locator('#editImageValues').click();
+  await page.locator('#reviewScopeConfirmed').check();
+  await page.locator('#submitImageReview').click();
+  assert((await page.locator('#imageReviewError').textContent()).includes('勾选至少'),'cannot bypass per-field confirmation');
+  const alt=page.locator('.image-review-row[data-code="ALT"]');
+  await alt.locator('[data-field="value"]').fill('16.0');
+  await alt.locator('[data-field="unit"]').fill('IU/L');
+  await alt.locator('[data-field="confirmed"]').check();
+  await page.locator('#reviewScopeConfirmed').check();
+  await page.locator('#submitImageReview').click();
+  await page.waitForFunction(()=>document.getElementById('gateBadge').textContent==='信息待补充'&&!document.getElementById('submitButton').disabled);
+  assert((await page.locator('#gateAction').textContent()).includes('性别'),'missing sex is still blocked after numeric confirmation');
+  await page.locator('#completeImageInfo').click();
+  assert(await alt.locator('[data-field="confirmed"]').isChecked(),'previously confirmed selected field is retained');
+  await page.locator('[data-review-sex="男"]').click();
+  await page.waitForFunction(()=>document.getElementById('resultPanel').dataset.gate==='pass'&&!document.getElementById('submitButton').disabled);
+  assert(await page.locator('#metrics .metric').count()===1,'only chosen ALT may be interpreted');
+  assert((await page.locator('#reviewScopeNote').textContent()).includes('仅核查 1 项'),'scope clearly limited');
+  assert((await page.locator('.metric-value').textContent()).includes('16U/L'),'safe unit normalization used');
+  assert(await page.locator('#imageTranscriptText').textContent()===original,'original OCR is immutable');
+  await page.locator('.metric-source-button').hover();
+  assert(await page.locator('#metricSourceTooltip').isVisible(),'source appears on hover');
+  await page.locator('.metric-source-button').click();
+  assert((await page.locator('#metricSourceTitle').textContent()).includes('ALT'),'citation belongs to selected indicator');
+  assert((await page.locator('#metricSourceBody').textContent()).includes('不是标准原文'),'reference summary is not presented as full original guideline');
+  await page.locator('#closeMetricSource').click();
+  await page.locator('#auditPanel > summary').click();
+  assert((await page.locator('#trace').textContent()).includes('human_review'),'human step appears in actual trace');
+  await page.locator('#auditPanel > summary').click();
+  for(const width of [1440,1024,768,390,320]){
+    await page.setViewportSize({width,height:1000});
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`no overflow at ${width}`);
+    await page.locator('#editImageValues').click();
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`editor fits at ${width}`);
+    await page.locator('#closeImageReview').click();
+  }
+  assert(!errors.length,errors.join(';'));
+  return {passed:true,realImage:true,manualFieldReview:true,genderFollowup:true,sourceLinked:true,originalPreserved:true,widths:[1440,1024,768,390,320],errors};
+}

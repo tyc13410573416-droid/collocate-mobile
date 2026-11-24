@@ -35,6 +35,10 @@ try {
     $Trigger = $Definition.Triggers.Create(9)
     $Trigger.UserId = $UserSid
     $Trigger.Delay = 'PT30S'
+    $RetryTrigger = $Definition.Triggers.Create(1)
+    $RetryTrigger.StartBoundary = [DateTime]::Now.AddMinutes(1).ToString('s')
+    $RetryTrigger.Repetition.Interval = 'PT5M'
+    $RetryTrigger.Enabled = $true
     $Action = $Definition.Actions.Create(0)
     $Action.Path = $ShellPath
     $Action.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $MonitorPath + '"'
