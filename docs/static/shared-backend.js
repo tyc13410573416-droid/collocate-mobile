@@ -74,7 +74,7 @@ window.MEDTRACE_SHARED = (() => {
   }
   async function ensureReady() {
     if (!enabled || manual()) return;
-    await refresh();
+    await refresh(config.sharedImageStatus !== "online");
     if (config.sharedImageStatus !== "online") throw new Error(offlineText);
   }
   if (enabled) setTimeout(() => refresh(true), 0);

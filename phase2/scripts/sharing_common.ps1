@@ -23,14 +23,30 @@ function Test-OwnedMonitor($State) {
 function Publish-SharingAddress([switch]$Offline) {
     $Arguments = @('E:\MedTraceNexent\scripts\publish_shared_backend.py')
     if ($Offline) { $Arguments += '--offline' }
-    & python @Arguments
+    $RuntimeConfig = 'E:\MedTraceNexent\status\sharing-autostart.json'
+    $PythonExecutable = $null
+    if (Test-Path -LiteralPath $RuntimeConfig) { $PythonExecutable = (Get-Content -LiteralPath $RuntimeConfig -Raw | ConvertFrom-Json).python }
+    if (-not $PythonExecutable) { $PythonExecutable = (Get-Command python -ErrorAction Stop).Source }
+    & $PythonExecutable @Arguments
     if ($LASTEXITCODE -ne 0) { throw 'Could not update the fixed team entry.' }
 }
 
 function Start-SharingMonitor {
     $State = Read-SharingState
     if (Test-OwnedMonitor $State) { return }
-    $ProcessInfo = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'E:\MedTraceNexent\scripts\monitor_local_sharing.ps1') -WindowStyle Hidden -PassThru -RedirectStandardOutput 'E:\MedTraceNexent\logs\sharing-monitor.stdout.log' -RedirectStandardError 'E:\MedTraceNexent\logs\sharing-monitor.stderr.log'
-    $State | Add-Member -NotePropertyName monitor_pid -NotePropertyValue $ProcessInfo.Id -Force
+    $ManagedConfigPath = 'E:\MedTraceNexent\status\sharing-autostart.json'
+    if (Test-Path -LiteralPath $ManagedConfigPath) {
+        $Managed = Get-Content -LiteralPath $ManagedConfigPath -Raw | ConvertFrom-Json
+        if ($Managed.kind -eq 'scheduled-task') {
+            $Task = Get-ScheduledTask -TaskName $Managed.task_name -ErrorAction Stop
+            if ($Task.State -ne 'Running') { Start-ScheduledTask -TaskName $Managed.task_name }
+            return
+        }
+    }
+    # WMI launches the user-owned process outside the invoking terminal's job.
+    $Command = '"' + (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') + '" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "E:\MedTraceNexent\scripts\monitor_local_sharing.ps1"'
+    $Created = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $Command; CurrentDirectory = 'E:\MedTraceNexent' }
+    if ($Created.ReturnValue -ne 0) { throw 'Could not launch the independent sharing monitor.' }
+    $State | Add-Member -NotePropertyName monitor_pid -NotePropertyValue ([int]$Created.ProcessId) -Force
     Write-SharingState $State
 }

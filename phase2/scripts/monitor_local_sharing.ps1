@@ -2,6 +2,11 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'sharing_common.ps1')
 $StopMarker = 'E:\MedTraceNexent\status\sharing.stop'
 $LogPath = 'E:\MedTraceNexent\logs\sharing-recovery.log'
+if (Test-Path -LiteralPath $StopMarker) { exit 0 }
+$InitialState = Read-SharingState
+if (-not $InitialState) { $InitialState = [PSCustomObject]@{ pid = 0; url = '' } }
+$InitialState | Add-Member -NotePropertyName monitor_pid -NotePropertyValue $PID -Force
+Write-SharingState $InitialState
 
 # A process-scoped power request prevents idle sleep only while sharing runs.
 # It does not change the user's power plan or prevent an explicit shutdown.
@@ -23,7 +28,7 @@ $Reason.Flags = 1
 $Reason.Text = 'MedTrace team OCR sharing'
 $PowerHandle = [MedTraceSharingPower]::PowerCreateRequest([ref]$Reason)
 $PowerHeld = $PowerHandle -ne [IntPtr]::Zero -and $PowerHandle.ToInt64() -ne -1 -and [MedTraceSharingPower]::PowerSetRequest($PowerHandle, 1)
-@{ monitor_pid = $PID; idle_sleep_inhibited = $PowerHeld } | ConvertTo-Json | Set-Content -LiteralPath 'E:\MedTraceNexent\status\sharing-monitor.json' -Encoding UTF8
+@{ monitor_pid = $PID; idle_sleep_inhibited = $PowerHeld; heartbeat_utc = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content -LiteralPath 'E:\MedTraceNexent\status\sharing-monitor.json' -Encoding UTF8
 $Failures = 0
 $LastRestart = [DateTime]::MinValue
 $LastPublicCheck = [DateTime]::MinValue
@@ -31,12 +36,14 @@ $RegistryPublished = $false
 $PublicHealthy = $true
 try {
     while (-not (Test-Path -LiteralPath $StopMarker)) {
+        @{ monitor_pid = $PID; idle_sleep_inhibited = $PowerHeld; heartbeat_utc = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content -LiteralPath 'E:\MedTraceNexent\status\sharing-monitor.json' -Encoding UTF8
         try {
             $State = Read-SharingState
             $LocalReady = $false
             try { $LocalReady = (Invoke-RestMethod -Uri 'http://127.0.0.1:5052/api/image-status' -TimeoutSec 4).configured } catch { }
             if (-not $LocalReady) { & (Join-Path $PSScriptRoot 'start_local_nexent.ps1') -NoBrowser }
             $Healthy = Test-OwnedTunnel $State
+            if (-not $Healthy) { $Failures = 2 }
             if ($Healthy -and ((Get-Date) - $LastPublicCheck).TotalSeconds -ge 60) {
                 $LastPublicCheck = Get-Date
                 try { $PublicHealthy = (Invoke-RestMethod -Uri ($State.url + '/api/image-status') -TimeoutSec 8).configured } catch { $PublicHealthy = $false }

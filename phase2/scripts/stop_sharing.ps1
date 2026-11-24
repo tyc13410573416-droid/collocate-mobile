@@ -4,6 +4,11 @@ Set-Content -LiteralPath 'E:\MedTraceNexent\status\sharing.stop' -Value 'Stopped
 $StatePath = 'E:\MedTraceNexent\status\sharing.json'
 if (-not (Test-Path -LiteralPath $StatePath)) { Write-Host 'Sharing is not running.'; return }
 $State = Get-Content -LiteralPath $StatePath -Raw | ConvertFrom-Json
+$ManagedPath = 'E:\MedTraceNexent\status\sharing-autostart.json'
+if (Test-Path -LiteralPath $ManagedPath) {
+    $Managed = Get-Content -LiteralPath $ManagedPath -Raw | ConvertFrom-Json
+    if ($Managed.kind -eq 'scheduled-task') { Stop-ScheduledTask -TaskName $Managed.task_name -ErrorAction SilentlyContinue }
+}
 if (Test-OwnedMonitor $State) { Stop-Process -Id ([int]$State.monitor_pid) }
 try { Publish-SharingAddress -Offline } catch { Write-Host 'Sharing stopped locally; the fixed page will detect the unavailable OCR service.' }
 $TunnelProcess = Get-CimInstance Win32_Process -Filter "ProcessId = $($State.pid)" -ErrorAction SilentlyContinue

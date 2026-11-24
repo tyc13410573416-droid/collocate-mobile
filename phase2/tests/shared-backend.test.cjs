@@ -74,6 +74,17 @@ test('unreachable OCR stays offline while the page remains in demo mode',async()
   assert.equal(env.config.sharedImageStatus,'offline');
   assert.equal(env.config.mode,'demo');
 });
+test('retry after recovery checks immediately instead of waiting on an offline cache',async()=>{
+  let healthy=false;
+  const env=setup(async url=>{
+    if(url.includes('/api/image-status')){if(!healthy)throw new Error('offline');return ok({configured:true});}
+    return ok(record());
+  });
+  await assert.rejects(env.client.ensureReady(),/离线/);
+  healthy=true;
+  await env.client.ensureReady();
+  assert.equal(env.config.sharedImageStatus,'online');
+});
 test('local and direct shared pages keep their own same-origin backend',async()=>{
   const env=setup(async()=>{throw new Error('unexpected network');},{mode:'api'});
   await env.client.ensureReady();
