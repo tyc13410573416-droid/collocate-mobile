@@ -24,7 +24,7 @@ async (page) => {
   await page.locator('#submitImageReview').click();
   await page.waitForFunction(()=>document.getElementById('gateBadge').textContent==='信息待补充'&&!document.getElementById('submitButton').disabled);
   assert((await page.locator('#gateAction').textContent()).includes('性别'),'missing sex is still blocked after numeric confirmation');
-  await page.locator('#completeImageInfo').click();
+  await page.locator('#applyGender').click();
   assert(await alt.locator('[data-field="confirmed"]').isChecked(),'previously confirmed selected field is retained');
   await page.locator('[data-review-sex="男"]').click();
   await page.waitForFunction(()=>document.getElementById('resultPanel').dataset.gate==='pass'&&!document.getElementById('submitButton').disabled);

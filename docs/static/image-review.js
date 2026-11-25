@@ -75,10 +75,11 @@ window.MEDTRACE_REVIEW = (() => {
     else rows.querySelector('input[type="number"]')?.focus({preventScroll:true});
   }
   document.getElementById("editImageValues").addEventListener("click",()=>openEditor());
-  document.getElementById("completeImageInfo").addEventListener("click",()=>{
+  function completeInfo() {
     if(current?.clarification?.field === "gender" && current.evidence_status === "missing_info" && !current.metadata?.human_verified)openGenderDialog();
     else openEditor(true);
-  });
+  }
+  document.getElementById("completeImageInfo").addEventListener("click",completeInfo);
   document.getElementById("closeImageReview").addEventListener("click",()=>editor.classList.add("hidden"));
   document.querySelectorAll("[data-review-sex]").forEach(button=>button.addEventListener("click",()=>{
     document.getElementById("reviewGender").value=button.dataset.reviewSex;
@@ -150,5 +151,5 @@ window.MEDTRACE_REVIEW = (() => {
     if(activeSource && (activeSource.button.matches(":hover") || document.activeElement === activeSource.button)) activeSource.show();
     else hideTooltip();
   },{passive:true});
-  return {render,appendCitations};
+  return {render,appendCitations,completeInfo};
 })();

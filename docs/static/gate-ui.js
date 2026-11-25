@@ -100,7 +100,10 @@ document.querySelectorAll("[data-gate-demo]").forEach((button) => {
     form.requestSubmit();
   });
 });
-document.getElementById("applyGender").addEventListener("click", openGenderDialog);
+document.getElementById("applyGender").addEventListener("click", () => {
+  if (lastGateResult?.metadata?.human_verified && window.MEDTRACE_REVIEW) window.MEDTRACE_REVIEW.completeInfo();
+  else openGenderDialog();
+});
 document.querySelectorAll("[data-patient-sex]").forEach(button=>button.addEventListener("click",()=>{
   if(submitButton.disabled)return;
   genderInput.value=button.dataset.patientSex;
