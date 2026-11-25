@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>检验报告解读演示</title>
     <link rel="icon" type="image/svg+xml" href="static/favicon.svg" />
-    <meta name="medtrace-release" content="20261124-review-loop" />
-    <link rel="stylesheet" href="static/app.css?v=20261124-review-loop" />
-    <link rel="stylesheet" href="static/gate-ui.css?v=20261124-review-loop" />
+    <meta name="medtrace-release" content="20261125-mobile-steps" />
+    <link rel="stylesheet" href="static/app.css?v=20261125-mobile-steps" />
+    <link rel="stylesheet" href="static/gate-ui.css?v=20261125-mobile-steps" />
+    <link rel="stylesheet" href="static/mobile-flow.css?v=20261125-mobile-steps" />
   </head>
   <body>
     <div class="app-frame">
@@ -59,16 +60,22 @@
       </details>
 
       <section class="workspace" id="workspace" aria-label="检验报告解读工作区">
+        <nav class="mobile-flow-nav" aria-label="报告解读步骤">
+          <div class="mobile-flow-topline"><button type="button" id="mobileBack" class="mobile-back" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>返回重新输入</button><span id="mobileStepStatus" role="status">先准备一份报告</span></div>
+          <ol class="mobile-steps"><li id="mobileInputStep" aria-current="step"><span>1</span>输入报告</li><li id="mobileResultStep"><span>2</span>查看结果</li></ol>
+        </nav>
         <form class="card input-card glass" id="analyzeForm">
           <div class="card-heading">
             <div>
               <p class="card-kicker">报告输入</p>
-              <h2>输入检验单</h2>
+              <h2 id="inputViewTitle" tabindex="-1">输入检验单</h2>
             </div>
             <span class="synthetic-tag">报告输入</span>
           </div>
+          <div id="reportIdField">
           <label for="reportId">样本编号</label>
           <input id="reportId" name="report_id" value="R001" autocomplete="off" />
+          </div>
           <label>输入方式</label>
           <label class="upload-dropzone" for="reportFile" id="dropZone">
             <input id="reportFile" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf" aria-describedby="uploadStatus" />
@@ -97,12 +104,16 @@ AST 35 U/L（参考范围 0—40）
 血红蛋白 11.8 g/dL（参考范围 120—160 g/L）
 白细胞 6.2 ×10^9/L（参考范围 4—10）
 空腹血糖 5.4 mmol/L（参考范围 3.9—6.1）</textarea>
+          <div id="medicationField">
           <label for="currentMedications">当前用药 <span class="optional-label">可选</span></label>
           <textarea id="currentMedications" name="current_medications" rows="2" placeholder="例如：阿托伐他汀 10 mg，每晚一次（仅作演示输入）"></textarea>
+          </div>
           <label for="patientGender">患者性别 <span class="optional-label">缺失时可追问</span></label>
           <select id="patientGender" name="patient_gender"><option value="">未知 / 未提供</option><option value="男">男</option><option value="女">女</option></select>
           <div class="sample-row"><span>快速开始</span><div class="sample-buttons"><button type="button" class="sample-button active" data-report="R001">R001</button><button type="button" class="sample-button" data-report="R002">R002</button><button type="button" class="sample-button" data-report="R003">R003</button><button type="button" class="sample-button" data-report="R004">字段规范</button><button type="button" class="sample-button" data-report="R005">冲突复核</button><button type="button" class="sample-button" data-report="R006">证据不足</button><button type="button" class="sample-button" data-report="R012">V2 ALT 200</button><button type="button" class="text-button" id="clearInput">清空</button></div></div>
-          <button type="submit" class="primary-button" id="submitButton"><span class="button-label">生成带来源解读</span></button>
+          <details class="mobile-only mobile-input-details" id="mobileOptions"><summary>补充用药与样本编号 <span>选填</span></summary><div id="mobileOptionsSlot"></div></details>
+          <details class="mobile-only mobile-input-details" id="mobileExamples"><summary>更多演示案例 <span>含四态门控</span></summary><div id="mobileExamplesSlot"></div></details>
+          <div class="mobile-submit-bar"><button type="submit" form="analyzeForm" class="primary-button" id="submitButton"><span class="button-label">生成带来源解读</span></button></div>
           <p class="helper">默认载入 R001 合成报告，点击按钮即可查看端到端展示。</p>
         </form>
 
@@ -110,7 +121,7 @@ AST 35 U/L（参考范围 0—40）
           <div class="card-heading">
             <div>
               <p class="card-kicker">解读结果与证据</p>
-              <h2>带来源解读</h2>
+              <h2 id="outputViewTitle" tabindex="-1">带来源解读</h2>
             </div>
             <div class="output-meta"><span class="request-id" id="requestId">尚未生成</span><span class="model-meta hidden" id="modelMeta"></span></div>
           </div>
@@ -126,6 +137,7 @@ AST 35 U/L（参考范围 0—40）
           <div id="loadingState" class="loading-state hidden"><span class="spinner"></span><div><strong>正在处理本次输入</strong><span id="loadingMessage">正在核对报告与证据…</span><div class="agent-timeline" id="agentTimeline"><span class="agent-step pending" data-agent-step="parse_report">抽取</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="normalize">标准化</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="query_reference">检索</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="check_interaction">核查</span><span class="agent-arrow">→</span><span class="agent-step pending" data-agent-step="summarize">汇总</span></div></div></div>
           <div id="emptyState" class="empty-state"><div class="empty-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 23V9m0 0-5 5m5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 25h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><strong>等待一份检验报告</strong><span>提交左侧合成报告后，这里会显示解读摘要、指标状态和可点击来源。</span></div>
           <div id="errorBanner" class="error-banner hidden" role="alert"></div>
+          <div id="mobileErrorActions" class="mobile-only mobile-error-actions hidden"><button type="button" id="mobileRetry" class="review-primary">重试本次输入</button><p>输入内容与所选文件已保留，也可返回后修改。</p></div>
           <div id="resultPanel" class="hidden">
             <div class="decision-gate hidden" id="decisionGate">
               <div class="decision-gate-heading"><span class="section-label">AI 决策门控</span><span class="gate-badge" id="gateBadge"></span></div>
@@ -137,6 +149,7 @@ AST 35 U/L（参考范围 0—40）
               <div class="clarification-box hidden" id="clarificationBox"><span class="clarification-dot"></span><span id="clarificationPrompt"></span><button type="button" class="text-button" id="applyGender">补充性别</button></div>
             </div>
             <div data-gate-content>
+            <details class="mobile-only mobile-original" id="mobileOriginal"><summary>查看本次报告原图</summary><div id="mobileOriginalSlot"></div></details>
             <section id="imageReviewEditor" class="image-review-editor hidden" aria-labelledby="reviewEditorTitle">
               <div class="review-heading"><div><p class="section-label">人工核对</p><h3 id="reviewEditorTitle">对照原图，确认本次核查项目</h3></div><button type="button" id="closeImageReview" class="text-button">收起</button></div>
               <p class="review-instructions">修改读数和单位，并勾选已核对的项目。系统会重新核查所选指标；未勾选及原图其他项目仍需核对。</p>
@@ -165,7 +178,7 @@ AST 35 U/L（参考范围 0—40）
             <div class="metric-grid" id="metrics"></div>
             <details id="imageTranscriptPanel" class="compact-details hidden">
               <summary class="section-heading-row"><span class="section-label">查看原始 OCR 文字与未确认字段</span><span class="evidence-tag">保留原始记录</span></summary>
-              <div class="details-content"><p class="image-reading-note">以下保留最初的图片识别记录。人工修改不会覆盖它；请对照左侧原图核对小数点、单位与参考范围。</p><pre id="imageTranscriptText" class="image-transcript"></pre><ul id="imageUncertainFields" class="checked-fields"></ul></div>
+              <div class="details-content"><p class="image-reading-note">以下保留最初的图片识别记录。人工修改不会覆盖它；请对照报告原图核对小数点、单位与参考范围。</p><pre id="imageTranscriptText" class="image-transcript"></pre><ul id="imageUncertainFields" class="checked-fields"></ul></div>
             </details>
             <div class="reasoning-block">
               <p class="section-label">可溯源推理链</p>
@@ -221,15 +234,16 @@ AST 35 U/L（参考范围 0—40）
     <script id="medtraceConfig">window.MEDTRACE_CONFIG = { mode: "demo" };</script>
     <div id="metricSourceTooltip" class="metric-source-tooltip hidden" role="tooltip"></div>
     <dialog id="metricSourceDialog" class="source-detail-dialog" aria-labelledby="metricSourceTitle"><div class="review-heading"><div><p class="section-label">指标与来源</p><h2 id="metricSourceTitle"></h2></div><button type="button" id="closeMetricSource" class="dialog-close" aria-label="关闭来源详情">×</button></div><div id="metricSourceBody"></div></dialog>
-    <script src="static/image-settings.js?v=20261124-review-loop"></script>
-    <script src="static/shared-backend.js?v=20261124-review-loop"></script>
-    <script src="static/demo-results.js?v=20261124-review-loop"></script>
-    <script src="static/gate-fixtures.js?v=20261124-review-loop"></script>
-    <script src="static/stage2-demo.js?v=20261124-review-loop"></script>
-    <script src="static/image-upload.js?v=20261124-review-loop"></script>
-    <script src="static/app.js?v=20261124-review-loop"></script>
-    <script src="static/image-review.js?v=20261124-review-loop"></script>
-    <script src="static/gate-ui.js?v=20261124-review-loop"></script>
+    <script src="static/image-settings.js?v=20261125-mobile-steps"></script>
+    <script src="static/shared-backend.js?v=20261125-mobile-steps"></script>
+    <script src="static/demo-results.js?v=20261125-mobile-steps"></script>
+    <script src="static/gate-fixtures.js?v=20261125-mobile-steps"></script>
+    <script src="static/stage2-demo.js?v=20261125-mobile-steps"></script>
+    <script src="static/image-upload.js?v=20261125-mobile-steps"></script>
+    <script src="static/app.js?v=20261125-mobile-steps"></script>
+    <script src="static/mobile-flow.js?v=20261125-mobile-steps"></script>
+    <script src="static/image-review.js?v=20261125-mobile-steps"></script>
+    <script src="static/gate-ui.js?v=20261125-mobile-steps"></script>
   </body>
 </html>
 

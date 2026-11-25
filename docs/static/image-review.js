@@ -108,7 +108,7 @@ window.MEDTRACE_REVIEW = (() => {
         scope_confirmed:document.getElementById("reviewScopeConfirmed").checked});
       genderInput.value=result.patient_info?.gender === "未知" ? "" : result.patient_info?.gender || "";
       renderResult(result); transportStatus.textContent="人工核对已重新核查";
-      resultPanel.scrollIntoView({behavior:"smooth",block:"start"});
+      if (!window.MEDTRACE_FLOW?.isMobile()) resultPanel.scrollIntoView({behavior:"smooth",block:"start"});
     } catch(error) {errorNode.textContent=error.message; errorNode.classList.remove("hidden");}
     finally {busy=false; submitButton.disabled=false; setGateBusy(false); controls.forEach(control=>control.disabled=false); save.textContent="提交核对并重新解读";}
   });

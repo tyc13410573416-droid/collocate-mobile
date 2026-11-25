@@ -52,6 +52,7 @@ function clearSelectedFile() {
 }
 
 function resetOutputForInput() {
+  window.MEDTRACE_FLOW?.input({ scroll: false });
   resultPanel.classList.add("hidden");
   errorBanner.classList.add("hidden");
   emptyState.classList.remove("hidden");
@@ -682,6 +683,7 @@ form.addEventListener("submit", async (event) => {
   // Photo progress comes from actual handoff events, not the demo timer.
   agentTimeline.classList.toggle("hidden", Boolean(selectedFile));
   if (!selectedFile) animateAgentTimeline();
+  window.MEDTRACE_FLOW?.start();
   try {
     const startedAt = performance.now();
     const result = await requestAnalysis({
@@ -694,7 +696,7 @@ form.addEventListener("submit", async (event) => {
     });
     await new Promise((resolve) => setTimeout(resolve, Math.max(0, 650 - (performance.now() - startedAt))));
     renderResult(result);
-    resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!window.MEDTRACE_FLOW?.isMobile()) resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
     transportStatus.textContent = result.transport === "nexent-image-http" ? "已收到图片门控结果" : result.transport === "nexent-http" ? "Nexent API 已联通" : (result.transport === "mock-nexent-http" ? "Mock API 已联通" : (result.transport === "github-pages-demo" ? "GitHub Pages 演示模式" : "本地演示模式"));
     transportStatus.className = "status-pill ready";
   } catch (error) {
@@ -703,6 +705,7 @@ form.addEventListener("submit", async (event) => {
     emptyState.classList.add("hidden");
     errorBanner.textContent = `联调失败：${error.message}`;
     errorBanner.classList.remove("hidden");
+    window.MEDTRACE_FLOW?.error();
     if (selectedFile) {
       uploadStatus.textContent = `${error.message} 文件仍保留，可重试或移除。`;
       uploadStatus.dataset.state = "error";

@@ -1,0 +1,104 @@
+/* Desktop keeps the existing two-column workbench. Mobile shows one step at a time. */
+.mobile-flow-nav, .mobile-only { display: none; }
+.mobile-submit-bar { display: contents; }
+
+@media (max-width: 820px) {
+  body.has-mobile-flow { scroll-behavior: auto; }
+  .has-mobile-flow .shell { width: calc(100% - 48px); max-width: 1180px; padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
+  .has-mobile-flow .site-header { display: flex; min-height: 64px; gap: 16px; padding: 16px 0; }
+  .has-mobile-flow .site-mark { width: 32px; height: 32px; border-radius: 12px; font-size: 16px; }
+  .has-mobile-flow .site-brand { gap: 8px; }
+  .has-mobile-flow .site-brand strong { font-size: 15px; }
+  .has-mobile-flow .site-brand small { color: #586069; font-size: 11px; }
+  .has-mobile-flow .demo-pill { display: inline-flex; min-width: 0; max-width: 45%; margin: 0; padding: 8px; border: 0; background: transparent; border-radius: 0; font-size: 11px; line-height: 1.6; }
+  .has-mobile-flow .demo-dot { flex: 0 0 6px; }
+  .has-mobile-flow .consumer-hero { display: block; margin: 16px 0; padding: 0 0 16px; min-height: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; text-align: left; }
+  .has-mobile-flow .consumer-hero h1 { font-size: 24px; line-height: 1.4; word-break: normal; }
+  .has-mobile-flow .subtitle { font-size: 14px; line-height: 1.7; }
+  .has-mobile-flow .consumer-eyebrow,
+  .has-mobile-flow .consumer-hero-actions,
+  .has-mobile-flow .consumer-hero-visual,
+  .has-mobile-flow .quick-actions,
+  .has-mobile-flow .notice { display: none; }
+  .has-mobile-flow .about-panel { margin: 24px 0 0; }
+  .has-mobile-flow .about-panel > summary { min-height: 44px; padding: 12px 16px; }
+  .has-mobile-flow .about-summary-hint { display: none; }
+  /* Keep optional connection/settings access after the input workbench. */
+  .has-mobile-flow .shell { display: flex; flex-direction: column; }
+  .has-mobile-flow .about-panel { order: 1; }
+  .has-mobile-flow .workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 0; }
+  .has-mobile-flow .workspace > .card { height: auto; max-height: none; overflow: visible; min-width: 0; padding: 24px; border-radius: 24px; }
+  .has-mobile-flow[data-mobile-view="input"] .output-card,
+  .has-mobile-flow[data-mobile-view="result"] .input-card,
+  .has-mobile-flow[data-mobile-view="result"] > .mobile-submit-bar,
+  .has-mobile-flow[data-mobile-view="result"] .consumer-hero,
+  .has-mobile-flow[data-mobile-view="result"] .about-panel { display: none; }
+  .has-mobile-flow .mobile-only { display: block; }
+  .has-mobile-flow .mobile-flow-nav { display: grid; gap: 8px; padding: 0; }
+  .mobile-flow-topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+  #mobileStepStatus { color: #586069; font-size: 12px; line-height: 1.6; }
+  .mobile-back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 0; border: 0; background: transparent; color: #0067d9; font: inherit; font-size: 14px; cursor: pointer; }
+  .mobile-back[hidden] { display: none; }
+  .mobile-back:disabled { opacity: .6; cursor: wait; }
+  .mobile-back svg { width: 16px; height: 16px; flex: 0 0 16px; }
+  .mobile-steps { display: flex; align-items: center; list-style: none; gap: 16px; padding: 0; margin: 0; }
+  .mobile-steps li { display: flex; flex: 1; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid #e1e4e8; font-size: 14px; color: #586069; }
+  .mobile-steps li span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #edf0f4; font-size: 12px; }
+  .mobile-steps li[aria-current="step"] { color: #0067d9; border-color: #0067d9; font-weight: 600; }
+  .mobile-steps li[aria-current="step"] span { color: #fff; background: #0067d9; }
+  .has-mobile-flow .card-heading { margin-bottom: 16px; }
+  .has-mobile-flow .card-kicker, .has-mobile-flow .synthetic-tag { display: none; }
+  .has-mobile-flow .output-meta { display: none; }
+  .has-mobile-flow .upload-dropzone { min-height: 0; gap: 8px; padding: 16px; border-radius: 16px; }
+  .has-mobile-flow .upload-icon { display: none; }
+  .has-mobile-flow .upload-help, .has-mobile-flow .file-name { color: #586069; font-size: 12px; }
+  .has-mobile-flow .optional-label { color: #586069; }
+  .has-mobile-flow .asset-picker { padding: 16px; }
+  .has-mobile-flow .asset-picker-heading { gap: 8px; }
+  .has-mobile-flow .asset-picker-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .has-mobile-flow .asset-button { min-height: 44px; padding: 8px; font-size: 12px; border-radius: 12px; }
+  .has-mobile-flow .asset-button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .has-mobile-flow #rawText { min-height: 160px; padding: 12px; font-size: 16px; line-height: 1.6; }
+  .has-mobile-flow #currentMedications, .has-mobile-flow input, .has-mobile-flow select { font-size: 16px; }
+  .mobile-input-details { margin-top: 16px; padding: 0; border-top: 1px solid #e1e4e8; }
+  .mobile-input-details > summary, .mobile-original > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; padding: 12px 0; color: #384351; font-size: 14px; cursor: pointer; }
+  .mobile-input-details > summary::after, .mobile-original > summary::after { content: '+'; color: #0067d9; font-size: 20px; }
+  .mobile-input-details[open] > summary::after, .mobile-original[open] > summary::after { content: '−'; }
+  .mobile-input-details > summary span { color: #586069; font-size: 12px; margin-left: auto; }
+  .has-mobile-flow .sample-row { display: block; }
+  .has-mobile-flow .sample-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .has-mobile-flow .sample-button, .has-mobile-flow #clearInput { min-height: 44px; padding: 8px; font-size: 13px; }
+  .has-mobile-flow .gate-demo-picker { margin: 16px 0 0; padding: 16px; }
+  .has-mobile-flow .gate-demo-buttons { grid-template-columns: 1fr; }
+  .has-mobile-flow .mobile-submit-bar { position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; display: block; padding: 12px 24px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid #e1e4e8; background: rgba(245,247,250,.94); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  .has-mobile-flow .mobile-submit-bar .primary-button { display: block; width: 100%; max-width: 772px; min-height: 48px; margin: 0 auto; font-size: 16px; }
+  .has-mobile-flow .input-card > .helper { margin-top: 24px; color: #586069; }
+  .has-mobile-flow #decisionGate { padding: 16px; margin-bottom: 24px; }
+  .has-mobile-flow .gate-title-row { gap: 8px; }
+  .has-mobile-flow .gate-title-row h3 { font-size: 20px; }
+  .has-mobile-flow .answer { font-size: 16px; }
+  .has-mobile-flow [data-gate-content] { display: flex; flex-direction: column; min-width: 0; }
+  .has-mobile-flow [data-gate-content] > * { min-width: 0; }
+  .has-mobile-flow #imageReviewEditor { order: -4; }
+  .has-mobile-flow #metrics { order: -3; margin-bottom: 24px; }
+  .has-mobile-flow #mobileOriginal { order: -2; }
+  .has-mobile-flow .metric-grid { grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); }
+  .has-mobile-flow .metric-name { font-size: 15px; }
+  .mobile-original { margin-bottom: 24px; border-bottom: 1px solid #e1e4e8; }
+  .mobile-original[hidden] { display: none !important; }
+  .has-mobile-flow .mobile-original .asset-preview { grid-template-columns: 1fr; padding: 0 0 16px; border-top: 0; margin: 0; }
+  .has-mobile-flow .mobile-original img { width: 100%; height: auto; max-height: none; object-fit: contain; }
+  .has-mobile-flow .image-reading-note { font-size: 14px; }
+  .has-mobile-flow .loading-state { padding: 32px 0; min-height: 200px; }
+  .has-mobile-flow .agent-timeline { flex-wrap: wrap; }
+  .mobile-error-actions p { color: #586069; font-size: 14px; line-height: 1.6; }
+  .mobile-error-actions .review-primary { width: 100%; min-height: 48px; }
+  .has-mobile-flow .card-heading h2:focus-visible { outline: 2px solid #0067d9; outline-offset: 8px; border-radius: 8px; }
+}
+
+@media (max-width: 360px) {
+  .has-mobile-flow .workspace > .card { padding: 16px; }
+  .has-mobile-flow .demo-pill { display: none; }
+  .mobile-flow-topline { flex-wrap: wrap; }
+  .mobile-input-details > summary { flex-wrap: wrap; }
+}

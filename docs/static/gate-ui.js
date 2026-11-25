@@ -3,6 +3,7 @@ const genderDialog = document.getElementById("genderDialog");
 let lastGateResult = null;
 
 function setGateBusy(busy) {
+  window.MEDTRACE_FLOW?.busy(busy);
   document.querySelector(".output-card").setAttribute("aria-busy", String(busy));
   document.querySelectorAll("[data-gate-demo], .sample-button, .asset-button, .quick-action, #removeFile, #clearInput").forEach((button) => { button.disabled = busy; });
   document.querySelectorAll("#analyzeForm input, #analyzeForm textarea, #analyzeForm select, #imageServiceForm input, #imageServiceForm button").forEach((input) => { input.disabled = busy; });
@@ -61,6 +62,7 @@ function renderResult(result) {
   document.getElementById("auditPanel").open = false;
   document.getElementById("auditMode").textContent = result.transport === "nexent-image-http" ? "图片接口判定记录" : window.MEDTRACE_CONFIG.mode === "demo" || result.request_id?.startsWith("mock-") ? "演示判定记录" : "接口判定记录";
   // Do not flash a stale sex prompt after the user corrected it.
+  window.MEDTRACE_FLOW?.result();
   if (missingGender && !result.metadata?.human_verified) openGenderDialog();
 }
 
@@ -125,6 +127,7 @@ document.getElementById("answerCitations").addEventListener("click", (event) => 
 // An edited input no longer describes the previous result.
 [rawTextInput, medicationsInput, genderInput].forEach((input) => input.addEventListener("input", () => {
   if (!lastGateResult) return;
+  window.MEDTRACE_FLOW?.input({ scroll: false });
   resultPanel.classList.add("hidden");
   emptyState.classList.remove("hidden");
   emptyState.querySelector("strong").textContent = "输入已更新";
